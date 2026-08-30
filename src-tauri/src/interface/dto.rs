@@ -3,10 +3,12 @@ use serde::{Deserialize, Serialize};
 use crate::application::compute_series::{
     DailyPoint, HabitBreakdownItem, PeriodCompareResult, TimelineResult,
 };
+use crate::application::import_workbook::{ImportPreview, ImportSummary};
 use crate::application::today_summary::TodaySummary;
 use crate::domain::cost_model::HabitPreset;
 use crate::domain::{Entry, EntryId, Habit, HabitId, Profile, Sex};
 use crate::infrastructure::db::codec::{format_date, format_datetime, parse_date, parse_datetime};
+use crate::infrastructure::import::Sheet;
 
 /// Domain types never cross IPC directly — these DTOs are the serde-visible
 /// boundary, so a domain refactor doesn't silently change the frontend's wire
@@ -270,6 +272,66 @@ impl From<HabitPreset> for HabitPresetDto {
             name: p.name.to_string(),
             unit_label: p.unit_label.to_string(),
             life_minutes_per_unit: p.life_minutes_per_unit,
+        }
+    }
+}
+
+/// A preview-only, display-string rendering of a sheet's cells — the
+/// mapping wizard just needs something to show the user, not typed values.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SheetPreviewDto {
+    pub name: String,
+    pub rows: Vec<Vec<String>>,
+}
+
+impl From<Sheet> for SheetPreviewDto {
+    fn from(s: Sheet) -> Self {
+        Self {
+            name: s.name,
+            rows: s
+                .rows
+                .into_iter()
+                .map(|row| {
+                    row.iter()
+                        .map(|c| c.as_text().unwrap_or_default())
+                        .collect()
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportPreviewDto {
+    pub sheets: Vec<SheetPreviewDto>,
+    pub source_signature: String,
+    pub remembered_mapping: Option<crate::infrastructure::import::mapping::ColumnMapping>,
+}
+
+impl From<ImportPreview> for ImportPreviewDto {
+    fn from(p: ImportPreview) -> Self {
+        Self {
+            sheets: p.sheets.into_iter().map(Into::into).collect(),
+            source_signature: p.source_signature,
+            remembered_mapping: p.remembered_mapping,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportSummaryDto {
+    pub entries_created: usize,
+    pub row_errors: Vec<crate::infrastructure::import::mapping::RowError>,
+}
+
+impl From<ImportSummary> for ImportSummaryDto {
+    fn from(s: ImportSummary) -> Self {
+        Self {
+            entries_created: s.entries_created,
+            row_errors: s.row_errors,
         }
     }
 }
