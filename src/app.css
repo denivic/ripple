@@ -1,0 +1,118 @@
+:root {
+  color-scheme: dark;
+
+  /* Fallback defaults (Deep Current) for the first paint, before theme.mount()
+     runs applyTheme(). Every value here is re-set at runtime by the applier. */
+  --surface-base: #0b0d0c;
+  --surface-sidebar-from: #0a0c0b;
+  --surface-sidebar-to: #16241f;
+  --surface-raised: #121514;
+  --text-primary: #ffffff;
+  --text-secondary: #9ba3a0;
+  --text-tertiary: #5e6664;
+  --accent-base: #2dd4bf;
+  --accent-muted: #134e4a;
+  --line-hairline: #1c201f;
+  --material-blur: 20px;
+  --material-saturate: 180%;
+  --material-alpha: 0.6;
+  --motion-damping: 1;
+  --motion-response: 0.35;
+  --data-series-1: #2dd4bf;
+  --data-series-2: #5eead4;
+  --data-series-3: #0ea5a5;
+  --data-series-4: #7dd3fc;
+  --data-series-5: #a78bfa;
+
+  /* Derived shades: computed from base tokens rather than enumerated in the
+     theme file, so a ~40-line theme still yields a full palette. */
+  --surface-hover: color-mix(in oklch, var(--surface-raised) 92%, white 8%);
+  --surface-pressed: color-mix(in oklch, var(--surface-raised) 85%, black 15%);
+  --accent-translucent: color-mix(in oklch, var(--accent-base) 20%, transparent);
+  --focus-ring: color-mix(in oklch, var(--accent-base) 70%, white 30%);
+
+  font-size: 16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: var(--text-primary);
+  background: var(--surface-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  /* Size-specific tracking: large text reads too loose at 0 tracking. */
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--accent-translucent);
+  color: var(--text-primary);
+}
+
+/* Both target engines (WebView2/Blink and WKWebView/WebKit) honor the
+   -webkit- scrollbar pseudo-elements. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-hover);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-pressed);
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
