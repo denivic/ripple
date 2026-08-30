@@ -7,6 +7,12 @@ use super::cost_model::{money_spent_for_entry, time_loss_for_entry, TimeLoss};
 use super::entry::Entry;
 use super::habit::{Habit, HabitId};
 
+/// TimeSpent/LifeShortened/Money mirror plan-v1.md's three toggleable
+/// breakdown metrics; only TotalTimeLost has a live Rust caller today (the
+/// application layer sends the full per-day/per-habit breakdown over IPC and
+/// lets the frontend pick), but the type is real domain vocabulary, not
+/// speculative, so it stays complete rather than trimmed to one variant.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Metric {
     TimeSpent,
@@ -70,7 +76,12 @@ fn daily_totals_map(
 
 /// Every day in `[start, end]`, zero-filled where there's no activity. This is
 /// the basis for bars, moving averages and the cumulative line: charts must
-/// stay continuous across quiet days rather than skipping them.
+/// stay continuous across quiet days rather than skipping them. (The
+/// cumulative sum, moving average and forward projection themselves are
+/// computed client-side in TypeScript from this series — see
+/// `src/lib/charts/series-math.ts` — so a metric toggle doesn't need a
+/// round trip; this function is the one place both sides would otherwise
+/// duplicate, so it stays the single source of truth.)
 pub fn daily_series(
     entries: &[Entry],
     habits: &HashMap<HabitId, Habit>,
@@ -93,68 +104,6 @@ pub fn daily_series(
         d += Duration::days(1);
     }
     out
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CumulativePoint {
-    pub date: Date,
-    pub cumulative_value: f64,
-}
-
-pub fn cumulative(daily: &[DailyTotal], metric: Metric) -> Vec<CumulativePoint> {
-    let mut running = 0.0;
-    daily
-        .iter()
-        .map(|d| {
-            running += d.value(metric);
-            CumulativePoint {
-                date: d.date,
-                cumulative_value: running,
-            }
-        })
-        .collect()
-}
-
-/// Trailing-window average over a *continuous* daily series (see
-/// [`daily_series`]) — a sparse, activity-only series would silently skip
-/// quiet days and inflate the average.
-pub fn moving_average(daily: &[DailyTotal], metric: Metric, window_days: usize) -> Vec<f64> {
-    if window_days == 0 {
-        return vec![0.0; daily.len()];
-    }
-    let values: Vec<f64> = daily.iter().map(|d| d.value(metric)).collect();
-    (0..values.len())
-        .map(|i| {
-            let start = i.saturating_sub(window_days - 1);
-            let window = &values[start..=i];
-            window.iter().sum::<f64>() / window.len() as f64
-        })
-        .collect()
-}
-
-pub fn recent_daily_rate(daily: &[DailyTotal], metric: Metric, trailing_days: usize) -> f64 {
-    if daily.is_empty() || trailing_days == 0 {
-        return 0.0;
-    }
-    let start = daily.len().saturating_sub(trailing_days);
-    let window = &daily[start..];
-    window.iter().map(|d| d.value(metric)).sum::<f64>() / window.len() as f64
-}
-
-/// Linear extrapolation from `current_cumulative` at `daily_rate`/day — the
-/// dashed forward cone on the Cumulative Ripple chart.
-pub fn forward_projection(
-    from_date: Date,
-    current_cumulative: f64,
-    daily_rate: f64,
-    days_forward: i64,
-) -> Vec<CumulativePoint> {
-    (0..=days_forward)
-        .map(|i| CumulativePoint {
-            date: from_date + Duration::days(i),
-            cumulative_value: current_cumulative + daily_rate * i as f64,
-        })
-        .collect()
 }
 
 fn is_clean(d: &DailyTotal) -> bool {
@@ -303,50 +252,6 @@ mod tests {
         assert_eq!(series[1].value(Metric::LifeShortened), 0.0);
         assert_eq!(series[0].value(Metric::LifeShortened), 22.0);
         assert_eq!(series[2].value(Metric::LifeShortened), 11.0);
-    }
-
-    #[test]
-    fn cumulative_runs_total_forward() {
-        let entries = vec![
-            entry(date!(2026 - 01 - 01), 9, 1.0),
-            entry(date!(2026 - 01 - 02), 9, 1.0),
-        ];
-        let series = daily_series(
-            &entries,
-            &habits(),
-            date!(2026 - 01 - 01),
-            date!(2026 - 01 - 02),
-        );
-        let cum = cumulative(&series, Metric::LifeShortened);
-        assert_eq!(cum[0].cumulative_value, 11.0);
-        assert_eq!(cum[1].cumulative_value, 22.0);
-    }
-
-    #[test]
-    fn moving_average_partial_window_at_start() {
-        let entries = vec![
-            entry(date!(2026 - 01 - 01), 9, 1.0),
-            entry(date!(2026 - 01 - 02), 9, 1.0),
-        ];
-        let series = daily_series(
-            &entries,
-            &habits(),
-            date!(2026 - 01 - 01),
-            date!(2026 - 01 - 02),
-        );
-        let avg = moving_average(&series, Metric::LifeShortened, 7);
-        // day 1 window is just [11.0]; day 2 window is [11.0, 11.0].
-        assert_eq!(avg[0], 11.0);
-        assert_eq!(avg[1], 11.0);
-    }
-
-    #[test]
-    fn forward_projection_extrapolates_linearly() {
-        let points = forward_projection(date!(2026 - 01 - 01), 100.0, 10.0, 3);
-        assert_eq!(points.len(), 4);
-        assert_eq!(points[0].cumulative_value, 100.0);
-        assert_eq!(points[3].cumulative_value, 130.0);
-        assert_eq!(points[3].date, date!(2026 - 01 - 04));
     }
 
     #[test]

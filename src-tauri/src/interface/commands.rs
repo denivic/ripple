@@ -1,15 +1,37 @@
 use std::sync::Arc;
 
-use tauri::State;
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, State};
 
+use crate::application::{compute_series, today_summary};
+use crate::domain::cost_model::default_habit_presets;
 use crate::domain::repository::{EntryRepository, HabitRepository, ProfileRepository};
-use crate::infrastructure::db::codec::parse_datetime;
+use crate::infrastructure::db::codec::{parse_date, parse_datetime};
 use crate::infrastructure::db::{
     SqliteEntryRepository, SqliteHabitRepository, SqliteProfileRepository,
 };
 
-use super::dto::{EntryDto, HabitDto, ProfileDto};
+use super::dto::{EntryDto, HabitDto, HabitPresetDto, ProfileDto, TimelineDto, TodaySummaryDto};
 use super::state::AppState;
+
+const DATA_CHANGED_EVENT: &str = "ripple://data-changed";
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DataChangedEvent {
+    scope: &'static str,
+}
+
+/// Observer: the frontend's stores subscribe to this once and patch their
+/// own state, rather than every write command's caller having to know who
+/// else needs to refresh. Emission failure is a wiring bug, not something a
+/// command's caller can act on, so it's logged rather than surfaced as a
+/// command error.
+fn notify_changed(app: &AppHandle, scope: &'static str) {
+    if let Err(e) = app.emit(DATA_CHANGED_EVENT, DataChangedEvent { scope }) {
+        eprintln!("failed to emit {DATA_CHANGED_EVENT}: {e}");
+    }
+}
 
 #[tauri::command]
 pub fn list_habits(
@@ -31,50 +53,49 @@ pub fn get_habit(state: State<AppState>, habit_id: i64) -> Result<Option<HabitDt
 }
 
 #[tauri::command]
-pub fn create_habit(state: State<AppState>, habit: HabitDto) -> Result<HabitDto, String> {
+pub fn create_habit(
+    app: AppHandle,
+    state: State<AppState>,
+    habit: HabitDto,
+) -> Result<HabitDto, String> {
     let repo = SqliteHabitRepository::new(Arc::clone(&state.db));
     let mut domain_habit = crate::domain::Habit::from(habit);
     let id = repo.insert(&domain_habit).map_err(|e| e.to_string())?;
     domain_habit.id = Some(id);
+    notify_changed(&app, "habits");
     Ok(domain_habit.into())
 }
 
 #[tauri::command]
-pub fn update_habit(state: State<AppState>, habit: HabitDto) -> Result<(), String> {
+pub fn update_habit(app: AppHandle, state: State<AppState>, habit: HabitDto) -> Result<(), String> {
     SqliteHabitRepository::new(Arc::clone(&state.db))
         .update(&habit.into())
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    notify_changed(&app, "habits");
+    Ok(())
 }
 
 #[tauri::command]
-pub fn archive_habit(state: State<AppState>, habit_id: i64) -> Result<(), String> {
+pub fn archive_habit(app: AppHandle, state: State<AppState>, habit_id: i64) -> Result<(), String> {
     SqliteHabitRepository::new(Arc::clone(&state.db))
         .archive(crate::domain::HabitId(habit_id))
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    notify_changed(&app, "habits");
+    Ok(())
 }
 
 #[tauri::command]
-pub fn log_entry(state: State<AppState>, entry: EntryDto) -> Result<EntryDto, String> {
+pub fn log_entry(
+    app: AppHandle,
+    state: State<AppState>,
+    entry: EntryDto,
+) -> Result<EntryDto, String> {
     let repo = SqliteEntryRepository::new(Arc::clone(&state.db));
     let mut domain_entry: crate::domain::Entry = entry.try_into()?;
     let id = repo.insert(&domain_entry).map_err(|e| e.to_string())?;
     domain_entry.id = Some(id);
+    notify_changed(&app, "entries");
     Ok(domain_entry.into())
-}
-
-#[tauri::command]
-pub fn update_entry(state: State<AppState>, entry: EntryDto) -> Result<(), String> {
-    let domain_entry: crate::domain::Entry = entry.try_into()?;
-    SqliteEntryRepository::new(Arc::clone(&state.db))
-        .update(&domain_entry)
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn delete_entry(state: State<AppState>, entry_id: i64) -> Result<(), String> {
-    SqliteEntryRepository::new(Arc::clone(&state.db))
-        .delete(crate::domain::EntryId(entry_id))
-        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -83,6 +104,25 @@ pub fn get_entry(state: State<AppState>, entry_id: i64) -> Result<Option<EntryDt
         .get(crate::domain::EntryId(entry_id))
         .map(|entry| entry.map(Into::into))
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_entry(app: AppHandle, state: State<AppState>, entry: EntryDto) -> Result<(), String> {
+    let domain_entry: crate::domain::Entry = entry.try_into()?;
+    SqliteEntryRepository::new(Arc::clone(&state.db))
+        .update(&domain_entry)
+        .map_err(|e| e.to_string())?;
+    notify_changed(&app, "entries");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_entry(app: AppHandle, state: State<AppState>, entry_id: i64) -> Result<(), String> {
+    SqliteEntryRepository::new(Arc::clone(&state.db))
+        .delete(crate::domain::EntryId(entry_id))
+        .map_err(|e| e.to_string())?;
+    notify_changed(&app, "entries");
+    Ok(())
 }
 
 #[tauri::command]
@@ -116,9 +156,52 @@ pub fn get_profile(state: State<AppState>) -> Result<ProfileDto, String> {
 }
 
 #[tauri::command]
-pub fn save_profile(state: State<AppState>, profile: ProfileDto) -> Result<(), String> {
+pub fn save_profile(
+    app: AppHandle,
+    state: State<AppState>,
+    profile: ProfileDto,
+) -> Result<(), String> {
     let domain_profile: crate::domain::Profile = profile.try_into()?;
     SqliteProfileRepository::new(Arc::clone(&state.db))
         .save(&domain_profile)
+        .map_err(|e| e.to_string())?;
+    notify_changed(&app, "profile");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn compute_timeline(
+    state: State<AppState>,
+    start: String,
+    end: String,
+) -> Result<TimelineDto, String> {
+    let habit_repo = SqliteHabitRepository::new(Arc::clone(&state.db));
+    let entry_repo = SqliteEntryRepository::new(Arc::clone(&state.db));
+    let start = parse_date(&start).map_err(|e| e.to_string())?;
+    let end = parse_date(&end).map_err(|e| e.to_string())?;
+    compute_series::compute_timeline(&habit_repo, &entry_repo, start, end)
+        .map(Into::into)
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn compute_today_summary(
+    state: State<AppState>,
+    today: String,
+) -> Result<TodaySummaryDto, String> {
+    let habit_repo = SqliteHabitRepository::new(Arc::clone(&state.db));
+    let entry_repo = SqliteEntryRepository::new(Arc::clone(&state.db));
+    let profile_repo = SqliteProfileRepository::new(Arc::clone(&state.db));
+    let today = parse_date(&today).map_err(|e| e.to_string())?;
+    today_summary::compute_today_summary(&habit_repo, &entry_repo, &profile_repo, today)
+        .map(Into::into)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_habit_presets() -> Vec<HabitPresetDto> {
+    default_habit_presets()
+        .into_iter()
+        .map(Into::into)
+        .collect()
 }

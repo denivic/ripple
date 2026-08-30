@@ -4,24 +4,60 @@ use super::entry::Entry;
 use super::habit::Habit;
 use super::profile::{Profile, Sex};
 
+// Habit has no category/kind field yet, so nothing can identify "this entry
+// is alcohol" or "...caffeine" to route through the Widmark/caffeine
+// functions below — that needs a habit-category concept this phase doesn't
+// add. Kept ready (and unit-tested) for whenever that lands, rather than
+// wired to a guess; each item that's unreachable until then is marked
+// individually below.
+
 /// Defaults cited in plan-v1.md, offered as starting points for user-editable
 /// per-habit `life_minutes_per_unit`, not as claims of clinical precision.
 pub const DEFAULT_LIFE_MINUTES_PER_CIGARETTE: f64 = 11.0;
 pub const DEFAULT_LIFE_MINUTES_PER_STANDARD_DRINK: f64 = 30.0;
 
+pub struct HabitPreset {
+    pub name: &'static str,
+    pub unit_label: &'static str,
+    pub life_minutes_per_unit: f64,
+}
+
+/// Quick-start suggestions for the "add habit" flow — a starting point the
+/// user edits, not a fixed taxonomy.
+pub fn default_habit_presets() -> Vec<HabitPreset> {
+    vec![
+        HabitPreset {
+            name: "Cigarettes",
+            unit_label: "cigarette",
+            life_minutes_per_unit: DEFAULT_LIFE_MINUTES_PER_CIGARETTE,
+        },
+        HabitPreset {
+            name: "Alcohol",
+            unit_label: "drink",
+            life_minutes_per_unit: DEFAULT_LIFE_MINUTES_PER_STANDARD_DRINK,
+        },
+    ]
+}
+
 /// Grams of pure alcohol in one US standard drink (NIAAA definition).
+#[allow(dead_code)]
 pub const STANDARD_DRINK_GRAMS_ALCOHOL: f64 = 14.0;
 
 // Widmark distribution ratio r: population-average fraction of body weight
 // alcohol distributes into. Real physiology varies with body composition, so
 // callers must present the result as an estimate, never a measurement.
+#[allow(dead_code)]
 const WIDMARK_R_MALE: f64 = 0.68;
+#[allow(dead_code)]
 const WIDMARK_R_FEMALE: f64 = 0.55;
 // Average hepatic elimination rate, in BAC percentage points per hour.
+#[allow(dead_code)]
 const ALCOHOL_ELIMINATION_PERCENT_PER_HOUR: f64 = 0.015;
 
 // Average adult caffeine half-life; apparent volume of distribution per kg.
+#[allow(dead_code)]
 const CAFFEINE_HALF_LIFE_HOURS: f64 = 5.0;
+#[allow(dead_code)]
 const CAFFEINE_VOLUME_OF_DISTRIBUTION_L_PER_KG: f64 = 0.5;
 
 /// "True time lost" per plan-v1.md is these two bands, always kept separate:
@@ -113,6 +149,7 @@ pub fn remaining_waking_life_months_at_rate(
 /// Widmark equation: peak BAC from distribution, minus hepatic elimination
 /// since the first drink. Returns an estimated BAC percentage (e.g. 0.08 for
 /// 0.08%), floored at zero. This is not a substitute for a breathalyzer.
+#[allow(dead_code)]
 pub fn estimated_bac_percent(
     standard_drinks: f64,
     weight_kg: f64,
@@ -135,6 +172,7 @@ pub fn estimated_bac_percent(
 
 /// First-order decay estimate of caffeine concentration, for surfacing "how
 /// much is still in your system" rather than a diagnosed sleep-debt figure.
+#[allow(dead_code)]
 pub fn estimated_caffeine_mg_per_l(dose_mg: f64, weight_kg: f64, hours_elapsed: f64) -> f64 {
     let vd_l = CAFFEINE_VOLUME_OF_DISTRIBUTION_L_PER_KG * weight_kg;
     if vd_l <= 0.0 {

@@ -18,11 +18,14 @@
   --material-alpha: 0.6;
   --motion-damping: 1;
   --motion-response: 0.35;
-  --data-series-1: #2dd4bf;
-  --data-series-2: #5eead4;
-  --data-series-3: #0ea5a5;
-  --data-series-4: #7dd3fc;
-  --data-series-5: #a78bfa;
+  --data-series-1: #3987e5;
+  --data-series-2: #d95926;
+  --data-series-3: #199e70;
+  --data-series-4: #c98500;
+  --data-series-5: #d55181;
+  --data-series-6: #008300;
+  --data-series-7: #9085e9;
+  --data-series-8: #e66767;
 
   /* Derived shades: computed from base tokens rather than enumerated in the
      theme file, so a ~40-line theme still yields a full palette. */
