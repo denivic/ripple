@@ -24,4 +24,23 @@ describe("built-in themes", () => {
     const names = builtInThemes.map((t) => t.name);
     expect(new Set(names).size).toBe(names.length);
   });
+
+  // Validated with the dataviz skill's validate_palette.js against each
+  // theme's own surface color (lightness band, chroma floor, CVD separation,
+  // normal-vision floor, contrast — all PASS). Re-run that validator by hand
+  // if this array ever changes; this test only guards against silent drift.
+  const VALIDATED_CATEGORICAL_ORDER = [
+    "#3987E5",
+    "#D95926",
+    "#199E70",
+    "#C98500",
+    "#D55181",
+    "#008300",
+    "#9085E9",
+    "#E66767",
+  ];
+
+  it.each(builtInThemes)("$name's data series is the validated categorical order", (theme) => {
+    expect(theme.data.series).toEqual(VALIDATED_CATEGORICAL_ORDER);
+  });
 });
