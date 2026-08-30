@@ -2,6 +2,7 @@ pub(crate) mod codec;
 mod entry_repository;
 mod error;
 mod habit_repository;
+mod mapping_repository;
 mod migrations;
 mod profile_repository;
 
@@ -13,6 +14,7 @@ use rusqlite::Connection;
 pub use entry_repository::SqliteEntryRepository;
 pub use error::DbError;
 pub use habit_repository::SqliteHabitRepository;
+pub use mapping_repository::SqliteMappingRepository;
 pub use profile_repository::SqliteProfileRepository;
 
 use crate::domain::repository::{RepoResult, RepositoryError};

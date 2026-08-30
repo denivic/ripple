@@ -3,15 +3,20 @@ use std::sync::Arc;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::application::{compute_series, today_summary};
+use crate::application::export_workbook::ExportFormat;
+use crate::application::{compute_series, export_workbook, import_workbook, today_summary};
 use crate::domain::cost_model::default_habit_presets;
 use crate::domain::repository::{EntryRepository, HabitRepository, ProfileRepository};
 use crate::infrastructure::db::codec::{parse_date, parse_datetime};
 use crate::infrastructure::db::{
-    SqliteEntryRepository, SqliteHabitRepository, SqliteProfileRepository,
+    SqliteEntryRepository, SqliteHabitRepository, SqliteMappingRepository, SqliteProfileRepository,
 };
+use crate::infrastructure::import::mapping::ColumnMapping;
 
-use super::dto::{EntryDto, HabitDto, HabitPresetDto, ProfileDto, TimelineDto, TodaySummaryDto};
+use super::dto::{
+    EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto, ProfileDto,
+    TimelineDto, TodaySummaryDto,
+};
 use super::state::AppState;
 
 const DATA_CHANGED_EVENT: &str = "ripple://data-changed";
@@ -204,4 +209,60 @@ pub fn get_habit_presets() -> Vec<HabitPresetDto> {
         .into_iter()
         .map(Into::into)
         .collect()
+}
+
+#[tauri::command]
+pub fn preview_import(state: State<AppState>, path: String) -> Result<ImportPreviewDto, String> {
+    let mapping_repo = SqliteMappingRepository::new(Arc::clone(&state.db));
+    import_workbook::preview_import(std::path::Path::new(&path), &mapping_repo)
+        .map(Into::into)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apply_import(
+    app: AppHandle,
+    state: State<AppState>,
+    path: String,
+    sheet_index: usize,
+    mapping: ColumnMapping,
+) -> Result<ImportSummaryDto, String> {
+    let habit_repo = SqliteHabitRepository::new(Arc::clone(&state.db));
+    let entry_repo = SqliteEntryRepository::new(Arc::clone(&state.db));
+    let mapping_repo = SqliteMappingRepository::new(Arc::clone(&state.db));
+    let summary = import_workbook::apply_import(
+        std::path::Path::new(&path),
+        sheet_index,
+        &mapping,
+        &habit_repo,
+        &entry_repo,
+        &mapping_repo,
+    )
+    .map_err(|e| e.to_string())?;
+    notify_changed(&app, "entries");
+    notify_changed(&app, "habits");
+    Ok(summary.into())
+}
+
+#[tauri::command]
+pub fn export_entries(
+    state: State<AppState>,
+    path: String,
+    format: String,
+) -> Result<usize, String> {
+    let habit_repo = SqliteHabitRepository::new(Arc::clone(&state.db));
+    let entry_repo = SqliteEntryRepository::new(Arc::clone(&state.db));
+    let format = match format.as_str() {
+        "xlsx" => ExportFormat::Xlsx,
+        "csv" => ExportFormat::Csv,
+        "json" => ExportFormat::Json,
+        other => return Err(format!("unsupported export format '{other}'")),
+    };
+    export_workbook::export_entries(
+        std::path::Path::new(&path),
+        format,
+        &habit_repo,
+        &entry_repo,
+    )
+    .map_err(|e| e.to_string())
 }

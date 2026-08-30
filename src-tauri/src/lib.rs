@@ -38,6 +38,9 @@ pub fn run() {
             interface::commands::compute_timeline,
             interface::commands::compute_today_summary,
             interface::commands::get_habit_presets,
+            interface::commands::preview_import,
+            interface::commands::apply_import,
+            interface::commands::export_entries,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use super::error::DbError;
 
-const CURRENT_VERSION: i32 = 1;
+const CURRENT_VERSION: i32 = 2;
 
 /// Versioned via `PRAGMA user_version` rather than a migrations table — the
 /// whole schema lives in this file for now, so there's nothing a table would
@@ -11,6 +11,9 @@ pub fn run(conn: &Connection) -> Result<(), DbError> {
     let version: i32 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
     if version < 1 {
         migrate_v1(conn)?;
+    }
+    if version < 2 {
+        migrate_v2(conn)?;
     }
     conn.pragma_update(None, "user_version", CURRENT_VERSION)?;
     Ok(())
@@ -48,6 +51,23 @@ fn migrate_v1(conn: &Connection) -> Result<(), DbError> {
             typical_sleep_hours REAL,
             net_hourly_income REAL,
             weight_kg REAL
+        );
+        ",
+    )?;
+    Ok(())
+}
+
+fn migrate_v2(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "
+        -- Remembers the column mapping chosen for an import, keyed by a
+        -- signature of the source file's header row, so re-importing a
+        -- similarly-shaped file (e.g. a recurring export) can suggest the
+        -- same mapping without asking again.
+        CREATE TABLE import_mappings (
+            source_signature TEXT PRIMARY KEY,
+            mapping_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL
         );
         ",
     )?;
