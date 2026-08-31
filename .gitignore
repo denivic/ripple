@@ -13,3 +13,7 @@ vite.config.ts.timestamp-*
 *.sqlite
 *.sqlite3
 *.db
+
+# Session planning docs, local only, never committed
+/plan-v1.md
+/plan-v1-continuation.md
