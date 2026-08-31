@@ -17,3 +17,6 @@ vite.config.ts.timestamp-*
 # Session planning docs, local only, never committed
 /plan-v1.md
 /plan-v1-continuation.md
+
+# Editor-local settings
+/.vscode

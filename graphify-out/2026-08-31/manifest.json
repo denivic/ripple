@@ -695,6 +695,18 @@
     "ast_hash": "103c971307c132dea3b0a46ebe8b7345",
     "semantic_hash": "103c971307c132dea3b0a46ebe8b7345"
   },
+  "plan-v1-continuation.md": {
+    "mtime": 1788119053.0931797,
+    "seen": 1788134385.0434163,
+    "ast_hash": "b77bbf750869a9a77ab5a6a7119c080d",
+    "semantic_hash": "b77bbf750869a9a77ab5a6a7119c080d"
+  },
+  "plan-v1.md": {
+    "mtime": 1788113129.35937,
+    "seen": 1788134385.043417,
+    "ast_hash": "07fa47c7411448aaca594c6c1cd202f4",
+    "semantic_hash": "07fa47c7411448aaca594c6c1cd202f4"
+  },
   "src/app.html": {
     "mtime": 1788114508.4533305,
     "seen": 1788134385.043418,
@@ -790,29 +802,5 @@
     "seen": 1788134385.0434303,
     "ast_hash": "3a387408ecc6cc283f724b39ca5fffb4",
     "semantic_hash": "3a387408ecc6cc283f724b39ca5fffb4"
-  },
-  ".claude/settings.json": {
-    "mtime": 1788136273.4081473,
-    "seen": 1788137147.451909,
-    "ast_hash": "35cbb615f7cee70dbdb9b2bc40696497",
-    "semantic_hash": ""
-  },
-  ".claude/settings.local.json": {
-    "mtime": 1788136943.7303376,
-    "seen": 1788137147.4519138,
-    "ast_hash": "f78ea89c9a9fa5332d3f15dcabbb8295",
-    "semantic_hash": ""
-  },
-  ".claude/skills/apple-design/SKILL.md": {
-    "mtime": 1788135958.740227,
-    "seen": 1788137147.4521034,
-    "ast_hash": "7ae1e8f9032a2d0bb66e4524cc907b5d",
-    "semantic_hash": ""
-  },
-  "CLAUDE.md": {
-    "mtime": 1788136559.2409804,
-    "seen": 1788137147.4521048,
-    "ast_hash": "dd17c9f250548dec7ea02053b116b9b9",
-    "semantic_hash": ""
   }
 }
