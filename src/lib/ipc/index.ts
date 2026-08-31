@@ -1,6 +1,16 @@
 export { commands } from "./commands";
 export { formatLocalDate, formatLocalDateTime, parseLocalDate, parseLocalDateTime } from "./datetime";
-export type { EntryDto, HabitDto, ProfileDto } from "./dto";
+export type {
+  ColumnMappingDto,
+  EntryDto,
+  HabitDto,
+  HabitMappingDto,
+  ImportPreviewDto,
+  ImportSummaryDto,
+  ProfileDto,
+  RowErrorDto,
+  SheetPreviewDto,
+} from "./dto";
 export { onDataChanged, type DataChangedEvent, type DataChangedScope } from "./events";
 export {
   entryFromDto,

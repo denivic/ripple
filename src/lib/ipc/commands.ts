@@ -1,5 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { EntryDto, HabitDto, HabitPresetDto, ProfileDto, TimelineDto, TodaySummaryDto } from "./dto";
+import type {
+  ColumnMappingDto,
+  EntryDto,
+  HabitDto,
+  HabitPresetDto,
+  ImportPreviewDto,
+  ImportSummaryDto,
+  ProfileDto,
+  TimelineDto,
+  TodaySummaryDto,
+} from "./dto";
 
 export const commands = {
   listHabits: (includeArchived: boolean) => invoke<HabitDto[]>("list_habits", { includeArchived }),
@@ -21,4 +31,9 @@ export const commands = {
   computeTimeline: (start: string, end: string) => invoke<TimelineDto>("compute_timeline", { start, end }),
   computeTodaySummary: (today: string) => invoke<TodaySummaryDto>("compute_today_summary", { today }),
   getHabitPresets: () => invoke<HabitPresetDto[]>("get_habit_presets"),
+
+  previewImport: (path: string) => invoke<ImportPreviewDto>("preview_import", { path }),
+  applyImport: (path: string, sheetIndex: number, mapping: ColumnMappingDto) =>
+    invoke<ImportSummaryDto>("apply_import", { path, sheetIndex, mapping }),
+  exportEntries: (path: string, format: "xlsx" | "csv") => invoke<number>("export_entries", { path, format }),
 };
