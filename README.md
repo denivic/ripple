@@ -47,8 +47,16 @@ The installer lands in `src-tauri/target/release/bundle/`.
 
 ## Usage
 
-Log occurrences from **Today**; the running toll updates immediately. **Timeline** reads the same data for its charts and animates to new values as entries change, with no reload needed. **Ledger** presents the same data as a spreadsheet: edit any field directly, or import an existing tracking spreadsheet through the mapping wizard.
+- **Today**: log occurrences; the running toll updates immediately.
+- **Timeline**: reads the same data for its charts, animating to new values as entries change with no reload needed.
+- **Ledger**: presents the same data as a spreadsheet. Edit any field directly, or import an existing tracking spreadsheet through the mapping wizard.
 
 ## Stack
 
-Tauri 2 (Rust core), Svelte 5, TypeScript, and SQLite. Tauri drives the platform's own webview (WebView2 on Windows, WKWebView on macOS) instead of bundling a Chromium runtime, producing a native Rust binary with a small installer footprint. Rust handles the heavy work: spreadsheet parsing and SQL aggregation over years of entries. CSS and the web platform handle the interface work: gradients, translucent materials, spring-driven motion, and live-updating charts, which they do better than a native toolkit would. Svelte 5's runes compile reactivity away rather than diffing a virtual DOM, so a chart update costs a scale recomputation, not a re-render.
+Tauri 2 (Rust core), Svelte 5, TypeScript, and SQLite.
+
+Tauri drives the platform's own webview (WebView2 on Windows, WKWebView on macOS) instead of bundling a Chromium runtime, producing a native Rust binary with a small installer footprint.
+
+Rust handles the heavy work: spreadsheet parsing and SQL aggregation over years of entries. CSS and the web platform handle the interface work: gradients, translucent materials, spring-driven motion, and live-updating charts, which they do better than a native toolkit would.
+
+Svelte 5's runes compile reactivity away rather than diffing a virtual DOM, so a chart update costs a scale recomputation, not a re-render.
