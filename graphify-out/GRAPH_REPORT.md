@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6c05a9c9`
+- Built from commit: `74cd0872`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -40,17 +40,17 @@
 - compilerOptions
 - scripts
 - default.json
-- vite
-- package.json
-- svelte.config.js
-- svelte-check
 - @sveltejs/adapter-static
-- Tauri
+- package.json
 - @types/d3-shape
+- import_workbook.rs
+- svelte.config.js
+- vite
+- svelte-check
+- Tauri
 - TypeScript
 - Vite
 - ssr
-- import_workbook.rs
 - graphify
 - ripple
 - README.md (Tauri+SvelteKit+TS template)
@@ -177,7 +177,7 @@ Nodes (10): core:default, dialog:allow-open, dialog:allow-save, main, opener:def
 Cohesion: 0.33
 Nodes (5): description, license, name, type, version
 
-### Community 48 - "import_workbook.rs"
+### Community 28 - "import_workbook.rs"
 Cohesion: 0.06
 Nodes (43): Box, Data, apply_import(), column_habit_mapping_creates_habits_by_name(), detect_source(), ImportPreview, imports_a_csv_with_a_fixed_habit_and_remembers_the_mapping(), preview_import() (+35 more)
 
