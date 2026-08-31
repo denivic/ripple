@@ -28,6 +28,8 @@
   }
 
   .content {
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     background: var(--surface-base);
     position: relative;

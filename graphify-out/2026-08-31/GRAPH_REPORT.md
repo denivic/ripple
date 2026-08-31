@@ -1,95 +1,106 @@
 # Graph Report - ripple  (2026-08-31)
 
 ## Corpus Check
-- Corpus is ~32,904 words - fits in a single context window. You may not need a graph.
+- 118 files · ~31,778 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 938 nodes · 1897 edges · 79 communities (31 shown, 33 thin omitted)
+- 954 nodes · 1916 edges · 78 communities (35 shown, 34 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 69 edges (avg confidence: 0.85)
-- Token cost: 0 input · 150,174 output
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `6c05a9c9`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- .numbers IWA Archive Parsing
-- Frontend IPC & Datetime Utils
-- Timeline Domain Types
-- Chart Rendering Components
-- Interface DTOs & Codec
-- Compute Timeline Use Case
-- DB Error Handling
-- Export Workbook Use Case
-- Today Summary Use Case
-- Import Workbook Use Case
-- Theme Accessibility System
-- UI Motion & Primitives
-- Habit Domain Model
-- .numbers Cell Storage Decode
-- Tauri App Config & Icons
-- Profile Domain Model
-- SQLite Habit Repository
-- CSV/JSON Export Writers
-- npm devDependencies
-- npm Runtime Dependencies
-- Planning Docs & Design Refs
-- App Icon Asset Set
-- TypeScript Config
-- npm Scripts
-- Tauri Capability Permissions
-- App Sections & Patterns Overview
-- package.json Metadata
-- Import/Export Format Adapters
-- Cost Model & Widmark BAC
-- SvelteKit Config
-- Client-Side Series Math
-- Phase 6 Ledger Plan
-- Phase 7 Profile/Settings Plan
-- svelte-check Tooling
-- SvelteKit Static Adapter
-- Svelte Vite Plugin
-- d3-scale Types
-- d3-shape Types
-- d3-time Types
-- Phase 8 Polish Plan
-- Hexagonal Architecture Boundary
-- Repository Pattern & rusqlite
-- TypeScript Dependency
-- Vite Dependency
-- SvelteKit Layout Config
-- Project Name Node
-- Chart Builder Pattern
+- IwaError
+- ipc/index.ts
+- dto.rs
+- charts/index.ts
+- commands.rs
+- cost_model.rs
+- ColumnMapping
+- Db
+- Apple Design
+- import_workbook.rs
+- theme/index.ts
+- today/+page.svelte
+- HabitId
+- cell_storage.rs
+- tauri.conf.json
+- repository.rs
+- entry_repository.rs
+- ExportError
+- devDependencies
+- dependencies
+- plan-v1.md (Ripple Implementation Plan)
+- Ripple App Icon/Logo
+- compilerOptions
+- scripts
+- default.json
+- No visual verification gap (Chrome extension)
+- package.json
+- Strategy/Adapter Pattern (TabularSource)
+- Cost Model (time/life split)
+- svelte.config.js
+- Habit Breakdown Chart
+- Phase 6 - Ledger (continuation detail)
+- Phase 7 - Profile + Settings + theme editor (continuation detail)
+- svelte-check
+- @sveltejs/adapter-static
+- @sveltejs/vite-plugin-svelte
+- @types/d3-scale
+- @types/d3-shape
+- @types/d3-time
+- Phase 8 - Polish + README (continuation detail)
+- pub(crate) hexagonal boundary
+- Repository Pattern
+- TypeScript
+- Vite
+- ssr
+- TabularSource
+- .sheets
+- CellValue
+- Sheet
+- graphify
+- ripple
+- Builder Pattern (Chart Option Assembly)
 - Calendar Heatmap Chart
-- d3 Library Bundle
-- Daily Bars + MA Chart
+- d3 (d3-scale/d3-shape/d3-array/d3-time-format)
+- Daily/Weekly Bars + Moving Average Chart
 - DTO Boundary Pattern
-- Rejected: ECharts/Chart.js
-- Rejected: egui/iced
-- Rejected: Handsontable/AG Grid
+- ECharts/Chart.js
+- egui/iced
+- Handsontable/AG Grid
 - Hour x Weekday Matrix Chart
 - Period Compare Chart
-- Phase 1 Scaffold
-- Phase 2 Domain+Persistence
-- Phase 3 Design System
-- Phase 4 Charts+Timeline+Today
-- Phase 5 Import/Export
-- Settings Section
-- Streak Counter Chart
-- README Template Node
+- Phase 1: Scaffold
+- Phase 2: Domain + Persistence
+- Phase 3: Design System
+- Phase 4: Charts + Timeline + Today
+- Phase 5: Import/Export
+- Settings (Section)
+- Streak + Clean-Days Counter
+- README.md (Tauri+SvelteKit+TS template)
 
 ## God Nodes (most connected - your core abstractions)
 1. `HabitId` - 37 edges
 2. `IwaError` - 23 edges
 3. `AppState` - 23 edges
 4. `Db` - 21 edges
-5. `decode_cell()` - 18 edges
-6. `read_table()` - 17 edges
-7. `compute_today_summary()` - 16 edges
-8. `daily_series()` - 16 edges
-9. `compute_timeline()` - 15 edges
-10. `Sheet` - 15 edges
+5. `Apple Design` - 20 edges
+6. `decode_cell()` - 18 edges
+7. `read_table()` - 17 edges
+8. `compute_today_summary()` - 16 edges
+9. `daily_series()` - 16 edges
+10. `parse_fields()` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Tauri` --semantically_similar_to--> `Tauri 2`  [INFERRED] [semantically similar]
-  README.md → plan-v1.md
 - `SvelteKit` --semantically_similar_to--> `Svelte 5`  [INFERRED] [semantically similar]
+  README.md → plan-v1.md
+- `Tauri` --semantically_similar_to--> `Tauri 2`  [INFERRED] [semantically similar]
   README.md → plan-v1.md
 - `TypeScript` --semantically_similar_to--> `TypeScript`  [INFERRED] [semantically similar]
   README.md → plan-v1.md
@@ -103,154 +114,170 @@
 
 ## Hyperedges (group relationships)
 - **Hexagonal Architecture Pattern Set** — plan_v1_hexagonal_architecture, plan_v1_repository_pattern, plan_v1_strategy_adapter_pattern, plan_v1_command_pattern, plan_v1_observer_pattern, plan_v1_builder_pattern, plan_v1_dto_boundary_pattern [EXTRACTED 1.00]
-- **Timeline Analytics Chart Suite** — plan_v1_cumulative_ripple_chart, plan_v1_daily_weekly_bars_chart, plan_v1_calendar_heatmap_chart, plan_v1_hour_weekday_matrix_chart, plan_v1_habit_breakdown_chart, plan_v1_streak_counter, plan_v1_period_compare_chart [EXTRACTED 1.00]
 - **Explicitly Rejected Stack Alternatives** — plan_v1_electron, plan_v1_egui_iced, plan_v1_echarts_chart_js, plan_v1_handsontable_ag_grid [EXTRACTED 1.00]
+- **Timeline Analytics Chart Suite** — plan_v1_cumulative_ripple_chart, plan_v1_daily_weekly_bars_chart, plan_v1_calendar_heatmap_chart, plan_v1_hour_weekday_matrix_chart, plan_v1_habit_breakdown_chart, plan_v1_streak_counter, plan_v1_period_compare_chart [EXTRACTED 1.00]
 
-## Communities (79 total, 33 thin omitted)
+## Communities (78 total, 34 thin omitted)
 
-### Community 0 - ".numbers IWA Archive Parsing"
+### Community 0 - "IwaError"
 Cohesion: 0.05
 Nodes (69): Item, Iterator, ArchiveMessage, parse_archives(), parses_a_real_archive_stream(), parses_consecutive_archives(), real_archive_bytes(), Result (+61 more)
 
-### Community 1 - "Frontend IPC & Datetime Utils"
+### Community 1 - "ipc/index.ts"
 Cohesion: 0.08
 Nodes (38): commands, formatLocalDate(), formatLocalDateTime(), pad(), parseLocalDate(), parseLocalDateTime(), DailyPointDto, EntryDto (+30 more)
 
-### Community 2 - "Timeline Domain Types"
-Cohesion: 0.08
-Nodes (42): DailyPoint, HabitBreakdownItem, HabitPreset, HabitBreakdownItem, PeriodCompareResult, Option, Vec, TimelineResult (+34 more)
+### Community 2 - "dto.rs"
+Cohesion: 0.09
+Nodes (35): DailyPoint, HabitBreakdownItem, HabitPreset, compute_timeline_includes_entries_from_archived_habits(), compute_timeline_zero_fills_and_compares_against_previous_equal_length_period(), DailyPoint, HabitBreakdownItem, PeriodCompareResult (+27 more)
 
-### Community 3 - "Chart Rendering Components"
+### Community 3 - "charts/index.ts"
 Cohesion: 0.07
 Nodes (30): i(), horizontalBarPath(), verticalBarPath(), cells, columnCount, d, last, maxValue (+22 more)
 
-### Community 4 - "Interface DTOs & Codec"
+### Community 4 - "commands.rs"
 Cohesion: 0.13
 Nodes (44): AppHandle, EntryDto, HabitDto, HabitPresetDto, ProfileDto, format_date(), format_datetime(), parse_date() (+36 more)
 
-### Community 5 - "Compute Timeline Use Case"
-Cohesion: 0.12
-Nodes (38): compute_timeline(), compute_timeline_includes_entries_from_archived_habits(), compute_timeline_zero_fills_and_compares_against_previous_equal_length_period(), DailyPoint, Date, RepoResult, money_spent_for_entry(), Self (+30 more)
+### Community 5 - "cost_model.rs"
+Cohesion: 0.07
+Nodes (60): compute_timeline(), RepoResult, bac_never_negative(), bac_rises_with_drinks_and_falls_with_time(), bac_sex_affects_distribution_ratio(), caffeine_concentration_decays_by_half_at_half_life(), default_habit_presets(), estimated_bac_percent() (+52 more)
 
-### Community 6 - "DB Error Handling"
+### Community 6 - "ColumnMapping"
+Cohesion: 0.24
+Nodes (12): now(), repo(), Arc, Option, PrimitiveDateTime, RepoResult, Self, sample_mapping() (+4 more)
+
+### Community 7 - "Db"
 Cohesion: 0.09
-Nodes (32): Mutex, MutexGuard, DbError, RepositoryError, Error, From, Parse, Self (+24 more)
+Nodes (35): Mutex, MutexGuard, DbError, RepositoryError, Error, From, Parse, Self (+27 more)
 
-### Community 7 - "Export Workbook Use Case"
+### Community 8 - "Apple Design"
 Cohesion: 0.10
-Nodes (30): export_entries(), export_resolves_habit_names_and_counts_rows(), ExportFormat, Path, Result, Entry, EntryId, Option (+22 more)
+Nodes (20): 10. Gesture design details (the "feel" checklist), 11. Frame-level smoothness, 12. Materials & depth — translucency conveys hierarchy, 13. Multimodal feedback — motion + sound + haptics, 14. Reduced motion & accessibility, 15. Typography — optical sizing, tracking, leading, 16. Design foundations — the eight principles, 17. Process (+12 more)
 
-### Community 8 - "Today Summary Use Case"
-Cohesion: 0.09
-Nodes (37): day_range(), Date, PrimitiveDateTime, compute_today_summary(), Date, Option, RepoResult, today_summary_omits_remaining_life_projection_without_a_complete_profile() (+29 more)
+### Community 9 - "import_workbook.rs"
+Cohesion: 0.39
+Nodes (11): Box, apply_import(), column_habit_mapping_creates_habits_by_name(), detect_source(), imports_a_csv_with_a_fixed_habit_and_remembers_the_mapping(), preview_import(), Path, PathBuf (+3 more)
 
-### Community 9 - "Import Workbook Use Case"
-Cohesion: 0.08
-Nodes (32): Box, Data, apply_import(), column_habit_mapping_creates_habits_by_name(), detect_source(), imports_a_csv_with_a_fixed_habit_and_remembers_the_mapping(), preview_import(), Path (+24 more)
-
-### Community 10 - "Theme Accessibility System"
+### Community 10 - "theme/index.ts"
 Cohesion: 0.13
 Nodes (23): AccessibilityPreferences, applyAccessibilityOverrides(), NO_ACCESSIBILITY_OVERRIDES, ACCESSIBILITY_QUERIES, applyTheme(), readAccessibilityPreferences(), themeToCssVars(), watchAccessibilityPreferences() (+15 more)
 
-### Community 11 - "UI Motion & Primitives"
+### Community 11 - "today/+page.svelte"
 Cohesion: 0.08
 Nodes (9): BOUNCE_DAMPING, SpringOptions, toSpringOptions(), active, addHabitOpen, newHabitCost, newHabitLifeMinutes, newHabitName (+1 more)
 
-### Community 12 - "Habit Domain Model"
-Cohesion: 0.16
-Nodes (27): Into, Habit, HabitId, Option, Self, String, apply_mapping(), cell_to_datetime() (+19 more)
+### Community 12 - "HabitId"
+Cohesion: 0.24
+Nodes (20): HabitId, apply_mapping(), cell_to_datetime(), column_habit_mapping_resolves_by_name(), HabitMapping, map_row(), MappedEntry, MappingResult (+12 more)
 
-### Community 13 - ".numbers Cell Storage Decode"
-Cohesion: 0.16
-Nodes (25): CellValue, Option, String, cell_kind(), CellKind, decode_cell(), DecodedCell, decodes_a_bool_cell() (+17 more)
+### Community 13 - "cell_storage.rs"
+Cohesion: 0.20
+Nodes (22): cell_kind(), CellKind, decode_cell(), DecodedCell, decodes_a_bool_cell(), decodes_a_date_cell_relative_to_the_2001_epoch(), decodes_a_duration_cell_as_minutes(), decodes_a_negative_fractional_number() (+14 more)
 
-### Community 14 - "Tauri App Config & Icons"
+### Community 14 - "tauri.conf.json"
 Cohesion: 0.09
 Nodes (22): icons/128x128@2x.png, icons/128x128.png, icons/32x32.png, icons/icon.icns, icons/icon.ico, app, security, windows (+14 more)
 
-### Community 15 - "Profile Domain Model"
-Cohesion: 0.15
-Nodes (17): Profile, Date, Option, Sex, ProfileRepository, get_before_any_save_returns_default(), repo(), Arc (+9 more)
+### Community 15 - "repository.rs"
+Cohesion: 0.05
+Nodes (47): Into, export_entries(), export_resolves_habit_names_and_counts_rows(), ExportFormat, Path, Result, day_range(), Date (+39 more)
 
-### Community 16 - "SQLite Habit Repository"
-Cohesion: 0.22
-Nodes (14): insert_then_get_round_trips(), list_excludes_archived_by_default(), repo(), row_to_habit(), Arc, Habit, Option, RepoResult (+6 more)
+### Community 16 - "entry_repository.rs"
+Cohesion: 0.21
+Nodes (16): EntryId, deleting_a_habit_cascades_to_its_entries(), insert_then_get_round_trips_including_datetime(), list_between_filters_by_range(), repo_with_habit(), row_to_entry(), Arc, Entry (+8 more)
 
-### Community 17 - "CSV/JSON Export Writers"
+### Community 17 - "ExportError"
 Cohesion: 0.13
 Nodes (17): Path, Result, write_csv(), JsonRow, Option, Path, Result, write_json() (+9 more)
 
-### Community 18 - "npm devDependencies"
+### Community 18 - "devDependencies"
 Cohesion: 0.12
 Nodes (17): devDependencies, svelte, @sveltejs/kit, @tauri-apps/cli, @types/d3-array, @types/d3-time-format, typescript, vite (+9 more)
 
-### Community 19 - "npm Runtime Dependencies"
+### Community 19 - "dependencies"
 Cohesion: 0.13
 Nodes (15): d3-time-format, dependencies, d3-array, d3-scale, d3-shape, d3-time, d3-time-format, @tauri-apps/api (+7 more)
 
-### Community 20 - "Planning Docs & Design Refs"
+### Community 20 - "plan-v1.md (Ripple Implementation Plan)"
 Cohesion: 0.13
 Nodes (15): apple-design skill, plan-v1-continuation.md (Ripple Continuation Plan), Force-scaffold deleted plan-v1.md, Cumulative Ripple Chart, dataviz skill, plan-v1.md (Ripple Implementation Plan), Electron, GitButler (reference implementation) (+7 more)
 
-### Community 22 - "TypeScript Config"
+### Community 22 - "compilerOptions"
 Cohesion: 0.15
 Nodes (12): ./.svelte-kit/tsconfig.json, compilerOptions, allowJs, checkJs, esModuleInterop, forceConsistentCasingInFileNames, moduleResolution, resolveJsonModule (+4 more)
 
-### Community 23 - "npm Scripts"
+### Community 23 - "scripts"
 Cohesion: 0.22
 Nodes (9): scripts, build, check, check:watch, dev, preview, tauri, test (+1 more)
 
-### Community 24 - "Tauri Capability Permissions"
+### Community 24 - "default.json"
 Cohesion: 0.22
 Nodes (8): core:default, main, opener:default, description, identifier, permissions, $schema, windows
 
-### Community 25 - "App Sections & Patterns Overview"
+### Community 25 - "No visual verification gap (Chrome extension)"
 Cohesion: 0.29
 Nodes (7): Command Pattern (Grid Undo/Redo), No visual verification gap (Chrome extension), Stores do full refetch, not fine-grained patching, Ledger (Spreadsheet Editor), Observer Pattern (ripple://data-changed), Timeline (Section), Today (Section)
 
-### Community 26 - "package.json Metadata"
+### Community 26 - "package.json"
 Cohesion: 0.33
 Nodes (5): description, license, name, type, version
 
-### Community 27 - "Import/Export Format Adapters"
+### Community 27 - "Strategy/Adapter Pattern (TabularSource)"
 Cohesion: 0.40
 Nodes (5): calamine (xlsx reader crate), .numbers reader confidence tiers, .numbers Reader (hand-rolled IWA decoder), rust_xlsxwriter (xlsx writer crate), Strategy/Adapter Pattern (TabularSource)
 
-### Community 28 - "Cost Model & Widmark BAC"
+### Community 28 - "Cost Model (time/life split)"
 Cohesion: 0.40
 Nodes (5): Widmark BAC/caffeine functions left unreachable, Cost Model (time/life split), Profile (Section), Waking-Life Share Formula, Widmark BAC Model
 
-### Community 30 - "Client-Side Series Math"
+### Community 30 - "Habit Breakdown Chart"
 Cohesion: 0.67
 Nodes (3): Client-side cumulative/moving-average/projection math, Metric enum kept with 4 variants, Habit Breakdown Chart
 
-### Community 31 - "Phase 6 Ledger Plan"
+### Community 31 - "Phase 6 - Ledger (continuation detail)"
 Cohesion: 0.67
 Nodes (3): @tauri-apps/plugin-dialog, Phase 6 - Ledger (continuation detail), Phase 6: Ledger
 
-### Community 32 - "Phase 7 Profile/Settings Plan"
+### Community 32 - "Phase 7 - Profile + Settings + theme editor (continuation detail)"
 Cohesion: 0.67
 Nodes (3): Phase 7 - Profile + Settings + theme editor (continuation detail), Theme persistence not yet implemented, Phase 7: Profile + Settings + Theme Editor
 
+### Community 48 - "TabularSource"
+Cohesion: 0.18
+Nodes (10): Data, TabularSource, cell_from_calamine(), AsRef, Path, PathBuf, Result, Self (+2 more)
+
+### Community 49 - ".sheets"
+Cohesion: 0.22
+Nodes (8): CsvSource, infer_cell(), AsRef, Path, PathBuf, Result, Self, Vec
+
+### Community 50 - "CellValue"
+Cohesion: 0.36
+Nodes (6): CellValue, ImportError, Error, Option, PrimitiveDateTime, String
+
+### Community 51 - "Sheet"
+Cohesion: 0.20
+Nodes (12): ImportPreview, ImportSummary, Option, String, Vec, RowError, Vec, Sheet (+4 more)
+
 ## Knowledge Gaps
-- **129 isolated node(s):** `name`, `version`, `description`, `type`, `dev` (+124 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 284 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **33 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **149 isolated node(s):** `Mandatory use — no exceptions`, `SpringOptions`, `active`, `ACCESSIBILITY_QUERIES`, `BOUNCE_DAMPING` (+144 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 300 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Db` connect `DB Error Handling` to `SQLite Habit Repository`, `Profile Domain Model`, `Interface DTOs & Codec`, `Export Workbook Use Case`?**
-  _High betweenness centrality (0.190) - this node is a cross-community bridge._
-- **Why does `Sheet` connect `Timeline Domain Types` to `.numbers IWA Archive Parsing`, `Import Workbook Use Case`, `Habit Domain Model`, `.numbers Cell Storage Decode`?**
-  _High betweenness centrality (0.122) - this node is a cross-community bridge._
-- **Why does `HabitId` connect `Habit Domain Model` to `Timeline Domain Types`, `Compute Timeline Use Case`, `DB Error Handling`, `Export Workbook Use Case`, `Today Summary Use Case`, `SQLite Habit Repository`?**
-  _High betweenness centrality (0.090) - this node is a cross-community bridge._
+- **Why does `Db` connect `Db` to `entry_repository.rs`, `commands.rs`, `ColumnMapping`, `repository.rs`?**
+  _High betweenness centrality (0.183) - this node is a cross-community bridge._
+- **Why does `Sheet` connect `Sheet` to `IwaError`, `dto.rs`, `import_workbook.rs`, `HabitId`, `TabularSource`, `.sheets`, `CellValue`?**
+  _High betweenness centrality (0.117) - this node is a cross-community bridge._
+- **Why does `HabitId` connect `HabitId` to `dto.rs`, `cost_model.rs`, `ColumnMapping`, `Db`, `repository.rs`, `entry_repository.rs`?**
+  _High betweenness centrality (0.087) - this node is a cross-community bridge._
 - **Are the 7 inferred relationships involving `HabitId` (e.g. with `habit()` and `money_spent_scales_with_quantity()`) actually correct?**
   _`HabitId` has 7 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `name`, `version`, `description` to the rest of the system?**
-  _129 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `.numbers IWA Archive Parsing` be split into smaller, more focused modules?**
+- **What connects `Mandatory use — no exceptions`, `SpringOptions`, `active` to the rest of the system?**
+  _149 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `IwaError` be split into smaller, more focused modules?**
   _Cohesion score 0.05422838031533684 - nodes in this community are weakly interconnected._
-- **Should `Frontend IPC & Datetime Utils` be split into smaller, more focused modules?**
+- **Should `ipc/index.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.07878787878787878 - nodes in this community are weakly interconnected._

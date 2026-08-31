@@ -74,3 +74,37 @@ export interface HabitPresetDto {
   unitLabel: string;
   lifeMinutesPerUnit: number;
 }
+
+/** Mirrors `HabitMapping` (src-tauri/src/infrastructure/import/mapping.rs) —
+ * a serde-external-tagged enum, so exactly one key is present. */
+export type HabitMappingDto = { column: number } | { fixed: number };
+
+export interface ColumnMappingDto {
+  habit: HabitMappingDto;
+  occurredAtColumn: number;
+  quantityColumn: number | null;
+  durationColumn: number | null;
+  noteColumn: number | null;
+  hasHeaderRow: boolean;
+}
+
+export interface RowErrorDto {
+  rowIndex: number;
+  message: string;
+}
+
+export interface SheetPreviewDto {
+  name: string;
+  rows: string[][];
+}
+
+export interface ImportPreviewDto {
+  sheets: SheetPreviewDto[];
+  sourceSignature: string;
+  rememberedMapping: ColumnMappingDto | null;
+}
+
+export interface ImportSummaryDto {
+  entriesCreated: number;
+  rowErrors: RowErrorDto[];
+}
