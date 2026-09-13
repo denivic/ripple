@@ -804,9 +804,9 @@
     "semantic_hash": ""
   },
   "src/lib/grid/DataGrid.svelte": {
-    "mtime": 1788281929.49127,
-    "seen": 1789179351.45446,
-    "ast_hash": "a6f79a21ecd4a5d7fb2fb0968a30fcf9",
+    "mtime": 1789299249.5258381,
+    "seen": 1789299287.4237802,
+    "ast_hash": "1ed0abb5f3b0a4b9a5ed18c57eb28490",
     "semantic_hash": ""
   },
   "src/lib/grid/ImportWizard.svelte": {
@@ -891,6 +891,18 @@
     "mtime": 1789297356.661276,
     "seen": 1789297985.183418,
     "ast_hash": "1d168eb7a453f91aa1094fc4eb63ef12",
+    "semantic_hash": ""
+  },
+  "src/lib/grid/navigation.test.ts": {
+    "mtime": 1789299235.9799113,
+    "seen": 1789299287.423784,
+    "ast_hash": "303add941df6d7a95c88953df267cd60",
+    "semantic_hash": ""
+  },
+  "src/lib/grid/navigation.ts": {
+    "mtime": 1789299223.0668569,
+    "seen": 1789299287.423784,
+    "ast_hash": "3a150c327b9a7f727fdf8f667066fc41",
     "semantic_hash": ""
   }
 }

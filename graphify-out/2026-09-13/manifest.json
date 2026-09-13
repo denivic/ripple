@@ -570,10 +570,10 @@
     "semantic_hash": ""
   },
   "src/lib/ui/Sheet.svelte": {
-    "mtime": 1788281929.4941144,
-    "seen": 1789179351.454476,
-    "ast_hash": "8bd535258948cdc6a8972f786ae5b65f",
-    "semantic_hash": "8bd535258948cdc6a8972f786ae5b65f"
+    "mtime": 1789298325.6530597,
+    "seen": 1789298885.416506,
+    "ast_hash": "98bf6ceaf6c394a6f0adee793c68aee7",
+    "semantic_hash": ""
   },
   "src/lib/ui/Sidebar.svelte": {
     "mtime": 1788281929.4941816,
@@ -624,9 +624,9 @@
     "semantic_hash": ""
   },
   "src/routes/ledger/+page.svelte": {
-    "mtime": 1788281929.4948368,
-    "seen": 1789179351.45448,
-    "ast_hash": "71b46c312da8bef1c8d541e49af3503f",
+    "mtime": 1789298371.817072,
+    "seen": 1789298885.416509,
+    "ast_hash": "0279fbc646125afb3003fca46bbe809e",
     "semantic_hash": ""
   },
   "src/routes/profile/+page.svelte": {
@@ -636,22 +636,22 @@
     "semantic_hash": ""
   },
   "src/routes/settings/+page.svelte": {
-    "mtime": 1789297489.5706236,
-    "seen": 1789297985.183429,
-    "ast_hash": "a40bcc72698a88cc8e93857b38c071af",
+    "mtime": 1789298365.9610345,
+    "seen": 1789298885.4165099,
+    "ast_hash": "6ae6d77c253d934feedbe0c77664456d",
     "semantic_hash": ""
   },
   "src/routes/timeline/+page.svelte": {
-    "mtime": 1789297424.762805,
-    "seen": 1789297985.183429,
-    "ast_hash": "b948137e0070eda8d8415e4e92f87f44",
+    "mtime": 1789298356.7409446,
+    "seen": 1789298885.4165099,
+    "ast_hash": "948ddf0fa4437160875b6ffbee8caf9c",
     "semantic_hash": ""
   },
   "src/routes/today/+page.svelte": {
-    "mtime": 1788281929.4952922,
-    "seen": 1789179351.454481,
-    "ast_hash": "47ea85865efe69dc5e82d40eaf2d14f9",
-    "semantic_hash": "47ea85865efe69dc5e82d40eaf2d14f9"
+    "mtime": 1789298346.6041636,
+    "seen": 1789298885.416511,
+    "ast_hash": "f870c52a4ba95ffdfe6ce0ba81bc4245",
+    "semantic_hash": ""
   },
   "svelte.config.js": {
     "mtime": 1788281929.4954336,
@@ -678,9 +678,9 @@
     "semantic_hash": "ed88e41a0b7de41c076fa95e3fb97483"
   },
   "README.md": {
-    "mtime": 1788281929.4720159,
-    "seen": 1789179351.454483,
-    "ast_hash": "b095ea5e517deee22cb2e2c790faf6fb",
+    "mtime": 1789298389.5054111,
+    "seen": 1789298885.416513,
+    "ast_hash": "1ba431bd0838d2630b2f4cfcae9f35e5",
     "semantic_hash": ""
   },
   "src/app.html": {

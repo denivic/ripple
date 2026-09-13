@@ -1,16 +1,16 @@
 # Graph Report - ripple  (2026-09-13)
 
 ## Corpus Check
-- 133 files · ~43,024 words
+- 135 files · ~43,726 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1061 nodes · 2315 edges · 66 communities (36 shown, 16 thin omitted)
+- 1069 nodes · 2324 edges · 61 communities (32 shown, 15 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 65 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c8d8298a`
+- Built from commit: `e8e76ccf`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,7 +26,7 @@
 - Apple Design
 - @types/d3-array
 - theme/index.ts
-- stores/index.ts
+- SqliteHabitRepository
 - mapping.rs
 - cell_storage.rs
 - tauri.conf.json
@@ -48,24 +48,19 @@
 - vite
 - svelte-check
 - Tauri
-- ledger.svelte.ts
+- navigation.ts
 - settings_repository.rs
 - .sheets
 - TypeScript
 - Vite
 - ssr
-- HabitsStore
 - Self
 - import_workbook.rs
-- timeline.svelte.ts
-- formatLocalDate
 - graphify
 - ripple
 - Sheet
-- compute_series.rs
+- TimelineResult
 - ImportPreview
-- HabitBreakdownItemDto
-- motion.ts
 - README.md (Tauri+SvelteKit+TS template)
 
 ## God Nodes (most connected - your core abstractions)
@@ -96,55 +91,55 @@
 - 2-file cycle: `src-tauri/src/infrastructure/db/mapping_repository.rs -> src-tauri/src/infrastructure/db/mod.rs -> src-tauri/src/infrastructure/db/mapping_repository.rs`
 - 4-file cycle: `src/lib/grid/ImportWizard.svelte -> src/lib/stores/index.ts -> src/lib/stores/ledger.svelte.ts -> src/lib/grid/index.ts -> src/lib/grid/ImportWizard.svelte`
 
-## Communities (66 total, 16 thin omitted)
+## Communities (61 total, 15 thin omitted)
 
 ### Community 0 - "IwaError"
 Cohesion: 0.05
 Nodes (70): Item, Iterator, ArchiveMessage, parse_archives(), parses_a_real_archive_stream(), parses_consecutive_archives(), real_archive_bytes(), Result (+62 more)
 
 ### Community 1 - "ipc/index.ts"
-Cohesion: 0.17
-Nodes (24): ColumnMappingDto, DailyPointDto, EntryDto, HabitBreakdownItemDto, HabitDto, HabitMappingDto, HabitPresetDto, ImportPreviewDto (+16 more)
+Cohesion: 0.06
+Nodes (48): commands, formatLocalDate(), formatLocalDateTime(), pad(), parseLocalDate(), parseLocalDateTime(), ColumnMappingDto, DailyPointDto (+40 more)
 
 ### Community 2 - "dto.rs"
 Cohesion: 0.20
-Nodes (12): DailyPoint, HabitPreset, DailyPointDto, Habit, HabitDto, HabitPresetDto, From, Habit (+4 more)
+Nodes (15): DailyPoint, HabitPreset, DailyPointDto, Habit, HabitDto, HabitPresetDto, ImportPreviewDto, From (+7 more)
 
 ### Community 3 - "charts/index.ts"
 Cohesion: 0.08
-Nodes (23): horizontalBarPath(), verticalBarPath(), formatCalendarDate(), formatDayTick, formatDuration(), formatHourTick, formatMillisecond, formatMinuteTick (+15 more)
+Nodes (24): i(), horizontalBarPath(), verticalBarPath(), formatCalendarDate(), formatDayTick, formatDuration(), formatHourTick, formatMillisecond (+16 more)
 
 ### Community 4 - "commands.rs"
-Cohesion: 0.11
-Nodes (55): AppHandle, EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto, ProfileDto, SettingsDto (+47 more)
+Cohesion: 0.14
+Nodes (46): AppHandle, EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto, ProfileDto, SettingsDto (+38 more)
 
 ### Community 5 - "HabitId"
-Cohesion: 0.08
-Nodes (61): compute_timeline(), RepoResult, bac_never_negative(), bac_rises_with_drinks_and_falls_with_time(), bac_sex_affects_distribution_ratio(), caffeine_concentration_decays_by_half_at_half_life(), default_habit_presets(), estimated_bac_percent() (+53 more)
+Cohesion: 0.07
+Nodes (66): compute_timeline(), compute_timeline_includes_entries_from_archived_habits(), compute_timeline_zero_fills_and_compares_against_previous_equal_length_period(), DailyPoint, HabitBreakdownItem, Date, RepoResult, bac_never_negative() (+58 more)
 
 ### Community 6 - "grid/index.ts"
 Cohesion: 0.06
-Nodes (34): formatCell(), HabitLookup, pad(), parseCell(), parseDateCell(), parseNumberCell(), ParseResult, habits (+26 more)
+Nodes (36): formatCell(), HabitLookup, pad(), parseCell(), parseDateCell(), parseNumberCell(), ParseResult, habits (+28 more)
 
 ### Community 7 - "Db"
 Cohesion: 0.09
-Nodes (37): Mutex, MutexGuard, DbError, RepositoryError, Error, From, Parse, Self (+29 more)
+Nodes (35): Mutex, MutexGuard, DbError, RepositoryError, Error, From, Parse, Self (+27 more)
 
 ### Community 8 - "Apple Design"
 Cohesion: 0.10
 Nodes (20): 10. Gesture design details (the "feel" checklist), 11. Frame-level smoothness, 12. Materials & depth — translucency conveys hierarchy, 13. Multimodal feedback — motion + sound + haptics, 14. Reduced motion & accessibility, 15. Typography — optical sizing, tracking, leading, 16. Design foundations — the eight principles, 17. Process (+12 more)
 
 ### Community 10 - "theme/index.ts"
-Cohesion: 0.10
-Nodes (24): SettingsStore, AccessibilityPreferences, applyAccessibilityOverrides(), NO_ACCESSIBILITY_OVERRIDES, ACCESSIBILITY_QUERIES, applyTheme(), readAccessibilityPreferences(), themeToCssVars() (+16 more)
+Cohesion: 0.05
+Nodes (35): SettingsStore, AccessibilityPreferences, applyAccessibilityOverrides(), NO_ACCESSIBILITY_OVERRIDES, ACCESSIBILITY_QUERIES, applyTheme(), readAccessibilityPreferences(), themeToCssVars() (+27 more)
 
-### Community 11 - "stores/index.ts"
-Cohesion: 0.11
-Nodes (9): i(), active, announce(), await(), addHabitOpen, newHabitCost, newHabitLifeMinutes, newHabitName (+1 more)
+### Community 11 - "SqliteHabitRepository"
+Cohesion: 0.22
+Nodes (14): insert_then_get_round_trips(), list_excludes_archived_by_default(), repo(), row_to_habit(), Arc, Habit, Option, RepoResult (+6 more)
 
 ### Community 12 - "mapping.rs"
-Cohesion: 0.12
-Nodes (33): now(), repo(), Arc, Option, PrimitiveDateTime, RepoResult, Self, sample_mapping() (+25 more)
+Cohesion: 0.22
+Nodes (20): apply_mapping(), cell_to_datetime(), column_habit_mapping_resolves_by_name(), HabitMapping, map_row(), MappedEntry, MappingResult, maps_a_well_formed_row_with_fixed_habit() (+12 more)
 
 ### Community 13 - "cell_storage.rs"
 Cohesion: 0.19
@@ -155,12 +150,12 @@ Cohesion: 0.09
 Nodes (22): icons/128x128@2x.png, icons/128x128.png, icons/32x32.png, icons/icon.icns, icons/icon.ico, app, security, windows (+14 more)
 
 ### Community 15 - "repository.rs"
-Cohesion: 0.06
-Nodes (42): Into, export_entries(), export_resolves_habit_names_and_counts_rows(), ExportFormat, Path, Result, day_range(), Date (+34 more)
+Cohesion: 0.05
+Nodes (47): Into, export_entries(), export_resolves_habit_names_and_counts_rows(), ExportFormat, Path, Result, day_range(), Date (+39 more)
 
 ### Community 16 - "entry_repository.rs"
-Cohesion: 0.14
-Nodes (21): Entry, EntryId, Option, PrimitiveDateTime, Self, String, deleting_a_habit_cascades_to_its_entries(), insert_then_get_round_trips_including_datetime() (+13 more)
+Cohesion: 0.13
+Nodes (25): EntryId, format_date(), format_datetime(), parse_date(), parse_datetime(), Date, Parse, PrimitiveDateTime (+17 more)
 
 ### Community 17 - "ExportError"
 Cohesion: 0.13
@@ -191,24 +186,20 @@ Cohesion: 0.33
 Nodes (5): description, license, name, type, version
 
 ### Community 28 - "XlsxSource"
-Cohesion: 0.24
-Nodes (8): Data, cell_from_calamine(), AsRef, CellValue, Path, PathBuf, Self, XlsxSource
+Cohesion: 0.18
+Nodes (10): Data, cell_from_calamine(), AsRef, CellValue, Path, PathBuf, Result, Self (+2 more)
 
-### Community 39 - "ledger.svelte.ts"
-Cohesion: 0.13
-Nodes (12): commands, onDataChanged(), Entry, entryFromDto(), entryToDto(), HabitPreset, TodaySummary, EntryFields (+4 more)
+### Community 39 - "navigation.ts"
+Cohesion: 0.29
+Nodes (6): CaretState, CellPosition, GridBounds, nextCell(), bounds, midCaret
 
 ### Community 40 - "settings_repository.rs"
-Cohesion: 0.12
+Cohesion: 0.11
 Nodes (25): Default, SettingsRepository, Option, Self, String, Settings, StartupRoute, WeekStart (+17 more)
 
 ### Community 41 - ".sheets"
 Cohesion: 0.18
 Nodes (10): CsvSource, infer_cell(), AsRef, CellValue, Path, PathBuf, Result, Self (+2 more)
-
-### Community 45 - "HabitsStore"
-Cohesion: 0.29
-Nodes (4): Habit, habitFromDto(), habitToDto(), HabitsStore
 
 ### Community 48 - "Self"
 Cohesion: 0.19
@@ -218,49 +209,37 @@ Nodes (13): Entry, EntryDto, Profile, ProfileDto, Entry, Error, Profile, Result 
 Cohesion: 0.37
 Nodes (12): Box, apply_import(), column_habit_mapping_creates_habits_by_name(), detect_source(), imports_a_csv_with_a_fixed_habit_and_remembers_the_mapping(), preview_import(), Path, PathBuf (+4 more)
 
-### Community 50 - "timeline.svelte.ts"
-Cohesion: 0.27
-Nodes (4): dailyPointFromDto(), Timeline, timelineFromDto(), TimelineStore
-
-### Community 51 - "formatLocalDate"
-Cohesion: 0.50
-Nodes (6): formatLocalDate(), formatLocalDateTime(), pad(), parseLocalDate(), parseLocalDateTime(), profileToDto()
-
 ### Community 54 - "Sheet"
-Cohesion: 0.22
-Nodes (9): CellValue, Error, Option, PrimitiveDateTime, String, Vec, Sheet, Result (+1 more)
+Cohesion: 0.27
+Nodes (7): CellValue, Error, Option, PrimitiveDateTime, String, Vec, Sheet
 
-### Community 55 - "compute_series.rs"
-Cohesion: 0.22
-Nodes (11): compute_timeline_includes_entries_from_archived_habits(), compute_timeline_zero_fills_and_compares_against_previous_equal_length_period(), DailyPoint, HabitBreakdownItem, PeriodCompareResult, Date, Option, Vec (+3 more)
+### Community 55 - "TimelineResult"
+Cohesion: 0.25
+Nodes (8): HabitBreakdownItem, PeriodCompareResult, Option, Vec, TimelineResult, HabitBreakdownItemDto, PeriodCompareDto, TimelineDto
 
 ### Community 56 - "ImportPreview"
-Cohesion: 0.23
-Nodes (9): ImportPreview, ImportSummary, Option, String, Vec, ImportPreviewDto, ImportSummaryDto, Vec (+1 more)
-
-### Community 62 - "motion.ts"
-Cohesion: 0.50
-Nodes (3): BOUNCE_DAMPING, SpringOptions, toSpringOptions()
+Cohesion: 0.28
+Nodes (7): ImportPreview, ImportSummary, Option, String, Vec, RowError, ImportSummaryDto
 
 ## Knowledge Gaps
-- **125 isolated node(s):** `name`, `version`, `description`, `type`, `dev` (+120 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 290 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **130 isolated node(s):** `name`, `version`, `description`, `type`, `dev` (+125 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 295 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **15 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Db` connect `Db` to `commands.rs`, `settings_repository.rs`, `mapping.rs`, `repository.rs`, `entry_repository.rs`?**
-  _High betweenness centrality (0.297) - this node is a cross-community bridge._
-- **Why does `Sheet` connect `Sheet` to `IwaError`, `dto.rs`, `.sheets`, `mapping.rs`, `import_workbook.rs`, `ImportPreview`?**
-  _High betweenness centrality (0.189) - this node is a cross-community bridge._
+- **Why does `Db` connect `Db` to `commands.rs`, `settings_repository.rs`, `SqliteHabitRepository`, `repository.rs`, `entry_repository.rs`?**
+  _High betweenness centrality (0.299) - this node is a cross-community bridge._
+- **Why does `Sheet` connect `Sheet` to `IwaError`, `dto.rs`, `.sheets`, `mapping.rs`, `import_workbook.rs`, `ImportPreview`, `XlsxSource`?**
+  _High betweenness centrality (0.188) - this node is a cross-community bridge._
 - **Why does `read_table()` connect `IwaError` to `cell_storage.rs`, `Sheet`?**
-  _High betweenness centrality (0.134) - this node is a cross-community bridge._
+  _High betweenness centrality (0.133) - this node is a cross-community bridge._
 - **Are the 7 inferred relationships involving `HabitId` (e.g. with `habit()` and `money_spent_scales_with_quantity()`) actually correct?**
   _`HabitId` has 7 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `name`, `version`, `description` to the rest of the system?**
-  _125 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _130 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `IwaError` be split into smaller, more focused modules?**
   _Cohesion score 0.05329593267882188 - nodes in this community are weakly interconnected._
-- **Should `charts/index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.08246225319396051 - nodes in this community are weakly interconnected._
+- **Should `ipc/index.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.06426906426906427 - nodes in this community are weakly interconnected._
