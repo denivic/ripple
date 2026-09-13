@@ -1,28 +1,52 @@
 <script lang="ts">
   interface Props {
     label: string;
-    type?: "text" | "number" | "date" | "email";
+    type?: "text" | "number" | "date" | "email" | "select";
     value?: string | number;
     placeholder?: string;
     error?: string;
     hint?: string;
     disabled?: boolean;
+    options?: { value: string; label: string }[];
     oninput?: (value: string) => void;
   }
 
-  let { label, type = "text", value = $bindable(""), placeholder, error, hint, disabled = false, oninput }: Props =
-    $props();
+  let {
+    label,
+    type = "text",
+    value = $bindable(""),
+    placeholder,
+    error,
+    hint,
+    disabled = false,
+    options,
+    oninput,
+  }: Props = $props();
 
   function handleInput(e: Event) {
     const target = e.currentTarget as HTMLInputElement;
     value = type === "number" ? target.valueAsNumber : target.value;
     oninput?.(target.value);
   }
+
+  function handleSelect(e: Event) {
+    const target = e.currentTarget as HTMLSelectElement;
+    value = target.value;
+    oninput?.(target.value);
+  }
 </script>
 
 <label class="field">
   <span class="field-label">{label}</span>
-  <input class="field-input" class:invalid={!!error} {type} {value} {placeholder} {disabled} oninput={handleInput} />
+  {#if type === "select"}
+    <select class="field-input" class:invalid={!!error} {value} {disabled} onchange={handleSelect}>
+      {#each options ?? [] as option (option.value)}
+        <option value={option.value}>{option.label}</option>
+      {/each}
+    </select>
+  {:else}
+    <input class="field-input" class:invalid={!!error} {type} {value} {placeholder} {disabled} oninput={handleInput} />
+  {/if}
   {#if error}
     <span class="field-message error">{error}</span>
   {:else if hint}
@@ -62,6 +86,10 @@
   }
   .field-input.invalid {
     border-color: #f87171;
+  }
+
+  select.field-input {
+    cursor: pointer;
   }
 
   .field-message {

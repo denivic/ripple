@@ -4,6 +4,7 @@ use time::PrimitiveDateTime;
 use super::entry::{Entry, EntryId};
 use super::habit::{Habit, HabitId};
 use super::profile::Profile;
+use super::settings::Settings;
 
 /// Repository ports are infrastructure-agnostic on purpose: domain code (and
 /// its tests) never link against rusqlite, only this trait.
@@ -37,4 +38,9 @@ pub trait EntryRepository {
 pub trait ProfileRepository {
     fn get(&self) -> RepoResult<Profile>;
     fn save(&self, profile: &Profile) -> RepoResult<()>;
+}
+
+pub trait SettingsRepository {
+    fn get(&self) -> RepoResult<Settings>;
+    fn save(&self, settings: &Settings) -> RepoResult<()>;
 }

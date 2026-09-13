@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { timeDay, timeWeek } from "d3-time";
+  import { timeDay, timeMonday, timeSunday } from "d3-time";
   import Tooltip from "./Tooltip.svelte";
   import { formatCalendarDate, formatDuration } from "./format";
 
@@ -12,23 +12,26 @@
     data: DayValue[];
     start: Date;
     end: Date;
+    weekStart?: "monday" | "sunday";
   }
 
-  let { data, start, end }: Props = $props();
+  let { data, start, end, weekStart = "monday" }: Props = $props();
 
   const CELL = 12;
   const GAP = 3;
 
   const byDate = $derived(new Map(data.map((d) => [timeDay(d.date).getTime(), d.value])));
-  const weekStart = $derived(timeWeek(start));
+  const weekInterval = $derived(weekStart === "sunday" ? timeSunday : timeMonday);
+  const firstWeekStart = $derived(weekInterval(start));
 
   const cells = $derived.by(() => {
     const out: { date: Date; value: number; column: number; row: number }[] = [];
     let d = timeDay(start);
     const last = timeDay(end);
     while (d.getTime() <= last.getTime()) {
-      const column = Math.round((timeWeek(d).getTime() - weekStart.getTime()) / (7 * 86400000));
-      out.push({ date: d, value: byDate.get(d.getTime()) ?? 0, column, row: d.getDay() });
+      const column = Math.round((weekInterval(d).getTime() - firstWeekStart.getTime()) / (7 * 86400000));
+      const row = weekStart === "sunday" ? d.getDay() : (d.getDay() + 6) % 7;
+      out.push({ date: d, value: byDate.get(d.getTime()) ?? 0, column, row });
       d = timeDay.offset(d, 1);
     }
     return out;

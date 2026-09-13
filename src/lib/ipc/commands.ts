@@ -7,6 +7,7 @@ import type {
   ImportPreviewDto,
   ImportSummaryDto,
   ProfileDto,
+  SettingsDto,
   TimelineDto,
   TodaySummaryDto,
 } from "./dto";
@@ -27,6 +28,14 @@ export const commands = {
 
   getProfile: () => invoke<ProfileDto>("get_profile"),
   saveProfile: (profile: ProfileDto) => invoke<void>("save_profile", { profile }),
+
+  getSettings: () => invoke<SettingsDto>("get_settings"),
+  saveSettings: (settings: SettingsDto) => invoke<void>("save_settings", { settings }),
+  getDataDir: () => invoke<string>("get_data_dir"),
+  backupDatabase: (target: string) => invoke<void>("backup_database", { target }),
+  restoreDatabase: (source: string) => invoke<void>("restore_database", { source }),
+  exportTheme: (path: string, themeJson: string) => invoke<void>("export_theme", { path, themeJson }),
+  importTheme: (path: string) => invoke<string>("import_theme", { path }),
 
   computeTimeline: (start: string, end: string) => invoke<TimelineDto>("compute_timeline", { start, end }),
   computeTodaySummary: (today: string) => invoke<TodaySummaryDto>("compute_today_summary", { today }),

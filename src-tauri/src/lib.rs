@@ -18,8 +18,9 @@ pub fn run() {
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
-            let db = Arc::new(Db::open(app_data_dir.join("ripple.sqlite"))?);
-            app.manage(AppState { db });
+            let db_path = app_data_dir.join("ripple.sqlite");
+            let db = Arc::new(Db::open(&db_path)?);
+            app.manage(AppState { db, db_path });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -36,6 +37,13 @@ pub fn run() {
             interface::commands::list_entries_between,
             interface::commands::get_profile,
             interface::commands::save_profile,
+            interface::commands::get_settings,
+            interface::commands::save_settings,
+            interface::commands::get_data_dir,
+            interface::commands::backup_database,
+            interface::commands::restore_database,
+            interface::commands::export_theme,
+            interface::commands::import_theme,
             interface::commands::compute_timeline,
             interface::commands::compute_today_summary,
             interface::commands::get_habit_presets,

@@ -6,16 +6,19 @@ use tauri::{AppHandle, Emitter, State};
 use crate::application::export_workbook::ExportFormat;
 use crate::application::{compute_series, export_workbook, import_workbook, today_summary};
 use crate::domain::cost_model::default_habit_presets;
-use crate::domain::repository::{EntryRepository, HabitRepository, ProfileRepository};
+use crate::domain::repository::{
+    EntryRepository, HabitRepository, ProfileRepository, SettingsRepository,
+};
 use crate::infrastructure::db::codec::{parse_date, parse_datetime};
 use crate::infrastructure::db::{
     SqliteEntryRepository, SqliteHabitRepository, SqliteMappingRepository, SqliteProfileRepository,
+    SqliteSettingsRepository,
 };
 use crate::infrastructure::import::mapping::ColumnMapping;
 
 use super::dto::{
     EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto, ProfileDto,
-    TimelineDto, TodaySummaryDto,
+    SettingsDto, TimelineDto, TodaySummaryDto,
 };
 use super::state::AppState;
 
@@ -172,6 +175,73 @@ pub fn save_profile(
         .map_err(|e| e.to_string())?;
     notify_changed(&app, "profile");
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_settings(state: State<AppState>) -> Result<SettingsDto, String> {
+    SqliteSettingsRepository::new(Arc::clone(&state.db))
+        .get()
+        .map(Into::into)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_settings(
+    app: AppHandle,
+    state: State<AppState>,
+    settings: SettingsDto,
+) -> Result<(), String> {
+    let domain_settings: crate::domain::Settings = settings.try_into()?;
+    SqliteSettingsRepository::new(Arc::clone(&state.db))
+        .save(&domain_settings)
+        .map_err(|e| e.to_string())?;
+    notify_changed(&app, "settings");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_data_dir(state: State<AppState>) -> String {
+    state
+        .db_path
+        .parent()
+        .unwrap_or(&state.db_path)
+        .display()
+        .to_string()
+}
+
+#[tauri::command]
+pub fn backup_database(state: State<AppState>, target: String) -> Result<(), String> {
+    state
+        .db
+        .backup_to(&state.db_path, std::path::Path::new(&target))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn restore_database(
+    app: AppHandle,
+    state: State<AppState>,
+    source: String,
+) -> Result<(), String> {
+    state
+        .db
+        .restore_from(&state.db_path, std::path::Path::new(&source))
+        .map_err(|e| e.to_string())?;
+    notify_changed(&app, "habits");
+    notify_changed(&app, "entries");
+    notify_changed(&app, "profile");
+    notify_changed(&app, "settings");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn export_theme(path: String, theme_json: String) -> Result<(), String> {
+    std::fs::write(path, theme_json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn import_theme(path: String) -> Result<String, String> {
+    std::fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

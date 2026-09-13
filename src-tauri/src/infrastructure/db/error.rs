@@ -19,3 +19,9 @@ impl From<time::error::Parse> for RepositoryError {
         RepositoryError(format!("stored date/time could not be parsed: {e}"))
     }
 }
+
+impl From<std::io::Error> for RepositoryError {
+    fn from(e: std::io::Error) -> Self {
+        RepositoryError(e.to_string())
+    }
+}

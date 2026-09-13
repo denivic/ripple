@@ -1,6 +1,6 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-export type DataChangedScope = "habits" | "entries" | "profile";
+export type DataChangedScope = "habits" | "entries" | "profile" | "settings";
 
 export interface DataChangedEvent {
   scope: DataChangedScope;

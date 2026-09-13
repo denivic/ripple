@@ -2,13 +2,20 @@
   import "../app.css";
   import { onMount } from "svelte";
   import { themeStore } from "$lib/theme/tokens.svelte";
+  import { settingsStore } from "$lib/stores";
   import Sidebar from "$lib/ui/Sidebar.svelte";
 
   let { children } = $props();
 
   onMount(() => {
+    // Applies the fallback default theme immediately; settingsStore.mount()
+    // then swaps in the persisted theme once the async load resolves.
     themeStore.mount();
-    return () => themeStore.unmount();
+    void settingsStore.mount();
+    return () => {
+      themeStore.unmount();
+      settingsStore.unmount();
+    };
   });
 </script>
 

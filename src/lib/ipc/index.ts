@@ -9,7 +9,9 @@ export type {
   ImportSummaryDto,
   ProfileDto,
   RowErrorDto,
+  SettingsDto,
   SheetPreviewDto,
+  StartupRouteDto,
 } from "./dto";
 export { onDataChanged, type DataChangedEvent, type DataChangedScope } from "./events";
 export {

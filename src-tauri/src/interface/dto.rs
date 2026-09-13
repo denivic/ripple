@@ -6,7 +6,9 @@ use crate::application::compute_series::{
 use crate::application::import_workbook::{ImportPreview, ImportSummary};
 use crate::application::today_summary::TodaySummary;
 use crate::domain::cost_model::HabitPreset;
-use crate::domain::{Entry, EntryId, Habit, HabitId, Profile, Sex};
+use crate::domain::{
+    Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute, WeekStart, WeightUnit,
+};
 use crate::infrastructure::db::codec::{format_date, format_datetime, parse_date, parse_datetime};
 use crate::infrastructure::import::Sheet;
 
@@ -140,6 +142,75 @@ impl TryFrom<ProfileDto> for Profile {
             typical_sleep_hours: d.typical_sleep_hours,
             net_hourly_income: d.net_hourly_income,
             weight_kg: d.weight_kg,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsDto {
+    pub startup_route: String,
+    pub week_start: String,
+    pub weight_unit: String,
+    pub theme_name: Option<String>,
+    pub custom_theme_json: Option<String>,
+}
+
+impl From<Settings> for SettingsDto {
+    fn from(s: Settings) -> Self {
+        Self {
+            startup_route: match s.startup_route {
+                StartupRoute::Today => "today",
+                StartupRoute::Timeline => "timeline",
+                StartupRoute::Ledger => "ledger",
+                StartupRoute::Profile => "profile",
+                StartupRoute::Settings => "settings",
+            }
+            .to_string(),
+            week_start: match s.week_start {
+                WeekStart::Monday => "monday",
+                WeekStart::Sunday => "sunday",
+            }
+            .to_string(),
+            weight_unit: match s.weight_unit {
+                WeightUnit::Kg => "kg",
+                WeightUnit::Lb => "lb",
+            }
+            .to_string(),
+            theme_name: s.theme_name,
+            custom_theme_json: s.custom_theme_json,
+        }
+    }
+}
+
+impl TryFrom<SettingsDto> for Settings {
+    type Error = String;
+
+    fn try_from(d: SettingsDto) -> Result<Self, Self::Error> {
+        let startup_route = match d.startup_route.as_str() {
+            "today" => StartupRoute::Today,
+            "timeline" => StartupRoute::Timeline,
+            "ledger" => StartupRoute::Ledger,
+            "profile" => StartupRoute::Profile,
+            "settings" => StartupRoute::Settings,
+            other => return Err(format!("unknown startup route '{other}'")),
+        };
+        let week_start = match d.week_start.as_str() {
+            "monday" => WeekStart::Monday,
+            "sunday" => WeekStart::Sunday,
+            other => return Err(format!("unknown week start '{other}'")),
+        };
+        let weight_unit = match d.weight_unit.as_str() {
+            "kg" => WeightUnit::Kg,
+            "lb" => WeightUnit::Lb,
+            other => return Err(format!("unknown weight unit '{other}'")),
+        };
+        Ok(Self {
+            startup_route,
+            week_start,
+            weight_unit,
+            theme_name: d.theme_name,
+            custom_theme_json: d.custom_theme_json,
         })
     }
 }

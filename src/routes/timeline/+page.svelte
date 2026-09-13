@@ -23,14 +23,16 @@
     recentDailyRate,
     seriesColorVar,
   } from "$lib/charts";
-  import { habitsStore, timelineStore } from "$lib/stores";
+  import { habitsStore, settingsStore, timelineStore } from "$lib/stores";
 
   onMount(() => {
     void habitsStore.mount();
     void timelineStore.mount();
+    void settingsStore.mount();
     return () => {
       habitsStore.unmount();
       timelineStore.unmount();
+      settingsStore.unmount();
     };
   });
 
@@ -244,7 +246,12 @@
 
     <section class="chart-card">
       <h2>Calendar</h2>
-      <CalendarHeatmap data={heatmapData} start={timelineStore.start} end={timelineStore.end} />
+      <CalendarHeatmap
+        data={heatmapData}
+        start={timelineStore.start}
+        end={timelineStore.end}
+        weekStart={settingsStore.data.weekStart}
+      />
     </section>
 
     <section class="chart-card">

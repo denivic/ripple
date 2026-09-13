@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use super::error::DbError;
 
-const CURRENT_VERSION: i32 = 2;
+const CURRENT_VERSION: i32 = 3;
 
 /// Versioned via `PRAGMA user_version` rather than a migrations table — the
 /// whole schema lives in this file for now, so there's nothing a table would
@@ -14,6 +14,9 @@ pub fn run(conn: &Connection) -> Result<(), DbError> {
     }
     if version < 2 {
         migrate_v2(conn)?;
+    }
+    if version < 3 {
+        migrate_v3(conn)?;
     }
     conn.pragma_update(None, "user_version", CURRENT_VERSION)?;
     Ok(())
@@ -68,6 +71,25 @@ fn migrate_v2(conn: &Connection) -> Result<(), DbError> {
             source_signature TEXT PRIMARY KEY,
             mapping_json TEXT NOT NULL,
             updated_at TEXT NOT NULL
+        );
+        ",
+    )?;
+    Ok(())
+}
+
+fn migrate_v3(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "
+        -- Single-row, like `profile`. `theme_name` and `custom_theme_json`
+        -- are mutually exclusive in practice (see domain::Settings), but
+        -- both nullable so a fresh row has an honest default.
+        CREATE TABLE settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            startup_route TEXT NOT NULL DEFAULT 'today',
+            week_start TEXT NOT NULL DEFAULT 'monday',
+            weight_unit TEXT NOT NULL DEFAULT 'kg',
+            theme_name TEXT,
+            custom_theme_json TEXT
         );
         ",
     )?;

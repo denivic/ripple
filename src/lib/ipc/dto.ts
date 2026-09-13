@@ -29,6 +29,16 @@ export interface ProfileDto {
   weightKg: number | null;
 }
 
+export type StartupRouteDto = "today" | "timeline" | "ledger" | "profile" | "settings";
+
+export interface SettingsDto {
+  startupRoute: StartupRouteDto;
+  weekStart: "monday" | "sunday";
+  weightUnit: "kg" | "lb";
+  themeName: string | null;
+  customThemeJson: string | null;
+}
+
 export interface DailyPointDto {
   date: string;
   timeSpentMinutes: number;
