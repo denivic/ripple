@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { formatCell, parseCell, type HabitLookup } from "./cell-parse";
   import type { RowPatch } from "./commands";
+  import { nextCell } from "./navigation";
   import { buildFillDownPatches, buildPastePatches } from "./tsv";
   import type { CellValue, EditableColumnKey, GridRow } from "./types";
 
@@ -170,14 +172,58 @@
     onPatch([{ rowId: row.id, before, after }]);
   }
 
+  // Scrolls the target row into the virtualized viewport before a cross-row
+  // arrow move, updating `scrollTop` directly rather than waiting for the
+  // native scroll event, so the derived visibleRows slice includes it by the
+  // time we query for the input to focus.
+  function ensureRowVisible(rowIndex: number): void {
+    if (!viewport) return;
+    const rowTop = rowIndex * ROW_HEIGHT;
+    const rowBottom = rowTop + ROW_HEIGHT;
+    if (rowTop < scrollTop) {
+      viewport.scrollTop = rowTop;
+      scrollTop = rowTop;
+    } else if (rowBottom > scrollTop + viewportHeight) {
+      const next = rowBottom - viewportHeight;
+      viewport.scrollTop = next;
+      scrollTop = next;
+    }
+  }
+
+  async function focusCell(rowIndex: number, colIndex: number): Promise<void> {
+    if (rowIndex < 0 || rowIndex >= displayRows.length) return;
+    if (colIndex < 0 || colIndex >= visibleColumns.length) return;
+    ensureRowVisible(rowIndex);
+    const targetRow = displayRows[rowIndex];
+    const targetCol = visibleColumns[colIndex];
+    await tick();
+    viewport?.querySelector<HTMLInputElement>(`[data-row-id="${targetRow.id}"][data-col="${targetCol.key}"]`)?.focus();
+  }
+
   function handleKeydown(e: KeyboardEvent, row: GridRow, column: EditableColumnKey): void {
     const input = e.currentTarget as HTMLInputElement;
     if (e.key === "Escape") {
       input.value = formatCell(column, row[column] as CellValue, column === "habitId" ? habitNameById(row.habitId) : null);
       setCellError(row.id, column, null);
       input.blur();
-    } else if (e.key === "Enter") {
+      return;
+    }
+    if (e.key === "Enter") {
       input.blur();
+      return;
+    }
+    // This also suppresses the native datalist suggestion popup's own
+    // arrow-key navigation on the Habit column — a deliberate trade-off for
+    // consistent grid navigation.
+    const target = nextCell(
+      e.key,
+      { rowIndex: displayRows.findIndex((r) => r.id === row.id), colIndex: visibleColumns.findIndex((c) => c.key === column) },
+      { atStart: input.selectionStart === 0 && input.selectionEnd === 0, atEnd: input.selectionStart === input.value.length && input.selectionEnd === input.value.length },
+      { rowCount: displayRows.length, colCount: visibleColumns.length },
+    );
+    if (target) {
+      e.preventDefault();
+      void focusCell(target.rowIndex, target.colIndex);
     }
   }
 
@@ -248,6 +294,8 @@
               class:invalid={!!error}
               class:row-selected={selected.has(row.id)}
               title={error ?? ""}
+              data-row-id={row.id}
+              data-col={col.key}
               list={col.key === "habitId" ? "ledger-habit-names" : undefined}
               value={formatCell(col.key, row[col.key] as CellValue, col.key === "habitId" ? habitNameById(row.habitId) : null)}
               onchange={(e) => commit(row, col.key, (e.currentTarget as HTMLInputElement).value, e.currentTarget)}
