@@ -20,3 +20,14 @@ vite.config.ts.timestamp-*
 
 # Editor-local settings
 /.vscode
+
+# Unrelated local Python scaffold (not part of the app), left in the repo root
+/.venv
+/bin
+/lib
+/pyvenv.cfg
+/.python-version
+/CACHEDIR.TAG
+/pyproject.toml
+/uv.lock
+/src/ripple
