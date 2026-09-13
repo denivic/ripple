@@ -1,7 +1,7 @@
 # Graph Report - ripple  (2026-09-13)
 
 ## Corpus Check
-- 133 files · ~42,642 words
+- 133 files · ~43,024 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3b33d3c3`
+- Built from commit: `c8d8298a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
