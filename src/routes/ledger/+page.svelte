@@ -84,8 +84,8 @@
 {#if ledgerStore.status}
   <div class="banner status">{ledgerStore.status}</div>
 {/if}
-{#if ledgerStore.error}
-  <div class="banner error">{ledgerStore.error}</div>
+{#if ledgerStore.error || habitsStore.error}
+  <div class="banner error">{ledgerStore.error ?? habitsStore.error}</div>
 {/if}
 
 <div class="page">

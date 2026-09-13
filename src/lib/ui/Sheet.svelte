@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { tick } from "svelte";
   import { Spring } from "svelte/motion";
   import { toSpringOptions } from "$lib/theme/motion";
   import { themeStore } from "$lib/theme/tokens.svelte";
@@ -24,8 +25,49 @@
     progress.target = open ? 1 : 0;
   });
 
+  let dialogEl: HTMLDivElement | undefined = $state();
+  let triggerEl: HTMLElement | null = null;
+
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  function focusableElements(): HTMLElement[] {
+    return dialogEl ? Array.from(dialogEl.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
+  }
+
+  // Moves focus into the sheet on open (so keyboard/screen-reader users land
+  // somewhere sensible instead of a hidden background element) and restores
+  // it to whatever triggered the sheet on close, matching standard dialog
+  // behavior.
+  $effect(() => {
+    if (open) {
+      triggerEl = document.activeElement as HTMLElement | null;
+      void tick().then(() => focusableElements()[0]?.focus());
+    } else {
+      triggerEl?.focus();
+      triggerEl = null;
+    }
+  });
+
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape" && open) onclose();
+    if (!open) return;
+    if (e.key === "Escape") {
+      onclose();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    // A simple focus trap: Tab past either end wraps within the dialog
+    // instead of escaping to the (visually hidden) background content.
+    const items = focusableElements();
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 </script>
 
@@ -42,6 +84,7 @@
     aria-label="Close"
   ></div>
   <div
+    bind:this={dialogEl}
     class="sheet"
     style:opacity={progress.current}
     style:transform="translateY({(1 - progress.current) * 12}px) scale({0.98 + progress.current * 0.02})"

@@ -159,6 +159,9 @@
 {#if status}
   <div class="banner status">{status}</div>
 {/if}
+{#if settingsStore.error}
+  <div class="banner error">{settingsStore.error}</div>
+{/if}
 
 <div class="page">
   {#if !ready}
@@ -294,6 +297,10 @@
   .banner.status {
     background: var(--accent-translucent);
     color: var(--text-primary);
+  }
+  .banner.error {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
   }
 
   .card {

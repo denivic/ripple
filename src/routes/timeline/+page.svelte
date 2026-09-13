@@ -185,6 +185,10 @@
 
 <Toolbar title="Timeline" />
 
+{#if habitsStore.error || timelineStore.error}
+  <div class="banner error">{habitsStore.error ?? timelineStore.error}</div>
+{/if}
+
 <div class="page">
   {#if timelineStore.loading && !timelineStore.data}
     <p class="muted">Loading…</p>
@@ -308,6 +312,17 @@
 </div>
 
 <style>
+  .banner {
+    margin: 0 1.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+  }
+  .banner.error {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+  }
+
   .page {
     padding: 1.5rem;
     display: flex;

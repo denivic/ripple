@@ -26,6 +26,8 @@ A small, repeated action propagates outward into something far larger than its o
 - **Today**: one-tap logging against user-defined habits, with a running toll of the day's time, money, and estimated life cost.
 - **Timeline**: cumulative cost over time with a forward projection, daily and weekly totals with a moving average, a calendar heatmap, an hour-of-day by day-of-week matrix, a per-habit breakdown (time, money, or life-minutes), streak tracking, and period-over-period comparison.
 - **Ledger**: a virtualized spreadsheet-style editor for every logged entry, with typed cells, undo/redo, TSV copy-paste, fill-down, sort and filter, and inline validation. Imports `.xlsx`, `.csv`, and `.numbers` through a column-mapping wizard that remembers the mapping per source file; exports to `.xlsx` or `.csv`.
+- **Profile**: the body and life inputs that feed the cost model (birth date, sex, life expectancy, typical sleep, net hourly income, weight), each labeled with the specific number it affects rather than presented as a bare form.
+- **Settings**: which section opens on launch, week start, a weight unit toggle, and a full theme editor (built-in themes or hand-picked colors, live preview, WCAG-AA contrast warnings, JSON import/export). One-click backup and restore of the whole database.
 - **Theming**: two built-in themes sharing one WCAG-checked, colorblind-safe data palette. Every chart, the grid, and the chrome read from the same token set, so a theme change repaints all of them together. Respects `prefers-reduced-motion`, `prefers-reduced-transparency`, and `prefers-contrast`.
 
 ## Install
@@ -50,6 +52,8 @@ The installer lands in `src-tauri/target/release/bundle/`.
 - **Today**: log occurrences; the running toll updates immediately.
 - **Timeline**: reads the same data for its charts, animating to new values as entries change with no reload needed.
 - **Ledger**: presents the same data as a spreadsheet. Edit any field directly, or import an existing tracking spreadsheet through the mapping wizard.
+- **Profile**: fill in what applies; every field is optional, and a metric that needs a missing field simply doesn't render.
+- **Settings**: pick a front page, edit or import a theme, and back up or restore the database.
 
 ## Stack
 

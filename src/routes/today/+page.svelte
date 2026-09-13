@@ -60,6 +60,10 @@
   <Button variant="secondary" onclick={() => (addHabitOpen = true)}>Add habit</Button>
 </Toolbar>
 
+{#if habitsStore.error || todayStore.error}
+  <div class="banner error">{habitsStore.error ?? todayStore.error}</div>
+{/if}
+
 <div class="page">
   {#if todayStore.summary}
     <section class="toll" aria-label="Today's running toll">
@@ -80,7 +84,9 @@
   {/if}
 
   <section class="targets" aria-label="Log a habit">
-    {#if habitsStore.items.length === 0}
+    {#if habitsStore.loading}
+      <p class="muted">Loading…</p>
+    {:else if habitsStore.items.length === 0}
       <div class="empty">
         <p>No habits yet. Start with a preset or add your own.</p>
         <div class="presets">
@@ -132,6 +138,17 @@
 </Sheet>
 
 <style>
+  .banner {
+    margin: 0 1.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+  }
+  .banner.error {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+  }
+
   .page {
     padding: 1.5rem;
     display: flex;
