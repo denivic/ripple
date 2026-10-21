@@ -1,4 +1,5 @@
 pub mod compute_series;
+pub mod convert_currency;
 pub mod export_workbook;
 pub mod import_workbook;
 pub mod today_summary;

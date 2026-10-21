@@ -4,6 +4,7 @@
   import Toolbar from "$lib/ui/Toolbar.svelte";
   import Button from "$lib/ui/Button.svelte";
   import Field from "$lib/ui/Field.svelte";
+  import Sheet from "$lib/ui/Sheet.svelte";
   import { commands, formatLocalDate, type SettingsDto } from "$lib/ipc";
   import { settingsStore } from "$lib/stores";
   import { builtInThemes, contrastRatio, meetsAA, themeStore, validateTheme, type Theme } from "$lib/theme";
@@ -42,6 +43,71 @@
     value: code,
     label: `${code} — ${currencyNames.of(code) ?? code}`,
   }));
+
+  // --- Currency change dialog ----------------------------------------------
+  // Picking a currency doesn't save on its own: amounts are stored as plain
+  // numbers, so the user chooses between converting them at today's rate or
+  // just relabelling them.
+
+  let pendingCurrency = $state<string | null>(null);
+  let rate = $state<number | null>(null);
+  let rateError = $state<string | null>(null);
+  let converting = $state(false);
+  // Bumped on Cancel so the <select> re-renders back to the saved value —
+  // the DOM already shows the abandoned pick, and the bound prop hasn't changed.
+  let currencySelectKey = $state(0);
+  let rateRequest = 0;
+
+  async function pickCurrency(code: string): Promise<void> {
+    if (code === settingsStore.data.currency) return;
+    pendingCurrency = code;
+    rate = null;
+    rateError = null;
+    const request = ++rateRequest;
+    try {
+      const fetched = await commands.fetchExchangeRate(settingsStore.data.currency, code);
+      if (request === rateRequest) rate = fetched;
+    } catch (e) {
+      if (request === rateRequest) rateError = String(e);
+    }
+  }
+
+  function closeCurrencyDialog(): void {
+    if (converting) return;
+    pendingCurrency = null;
+    rateRequest++;
+    currencySelectKey++;
+  }
+
+  async function convertAmounts(): Promise<void> {
+    if (!pendingCurrency) return;
+    const from = settingsStore.data.currency;
+    const to = pendingCurrency;
+    converting = true;
+    try {
+      const result = await commands.convertCurrency(from, to);
+      await settingsStore.load();
+      announce(
+        `Converted ${result.convertedHabits} habit${result.convertedHabits === 1 ? "" : "s"} and your hourly income at 1 ${from} = ${formatRate(result.rate)} ${to}.`,
+      );
+      converting = false;
+      closeCurrencyDialog();
+    } catch (e) {
+      rateError = String(e);
+      converting = false;
+    }
+  }
+
+  async function relabelOnly(): Promise<void> {
+    if (!pendingCurrency) return;
+    const to = pendingCurrency;
+    closeCurrencyDialog();
+    await saveGeneral({ currency: to });
+  }
+
+  function formatRate(value: number): string {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  }
 
   function announce(message: string): void {
     status = message;
@@ -225,14 +291,16 @@
           oninput={(v) => saveGeneral({ weightUnit: v as SettingsDto["weightUnit"] })}
           hint="Used for the Profile page's weight field."
         />
-        <Field
-          type="select"
-          label="Currency"
-          value={settingsStore.data.currency}
-          options={currencyOptions}
-          oninput={(v) => saveGeneral({ currency: v })}
-          hint="How money amounts are displayed. Existing amounts are not converted."
-        />
+        {#key currencySelectKey}
+          <Field
+            type="select"
+            label="Currency"
+            value={settingsStore.data.currency}
+            options={currencyOptions}
+            oninput={(v) => void pickCurrency(v)}
+            hint="Changing it offers to convert habit costs and your hourly income at today's exchange rate."
+          />
+        {/key}
       </div>
     </section>
 
@@ -300,6 +368,29 @@
     </section>
   {/if}
 </div>
+
+<Sheet open={pendingCurrency !== null} title="Change currency" onclose={closeCurrencyDialog}>
+  <div class="currency-dialog">
+    <p>
+      Switch from {settingsStore.data.currency} to {pendingCurrency}. Converting multiplies every habit's cost per
+      unit and your net hourly income by today's rate; changing the symbol only keeps the numbers as they are.
+    </p>
+    {#if rateError}
+      <p class="warning">{rateError}</p>
+    {:else if rate === null}
+      <p class="rate muted-inline">Fetching today's rate…</p>
+    {:else}
+      <p class="rate">1 {settingsStore.data.currency} = {formatRate(rate)} {pendingCurrency}</p>
+    {/if}
+    <div class="dialog-actions">
+      <Button variant="primary" disabled={rate === null || rateError !== null || converting} onclick={convertAmounts}>
+        {converting ? "Converting…" : "Convert at today's rate"}
+      </Button>
+      <Button variant="secondary" disabled={converting} onclick={relabelOnly}>Change symbol only</Button>
+      <Button variant="ghost" disabled={converting} onclick={closeCurrencyDialog}>Cancel</Button>
+    </div>
+  </div>
+</Sheet>
 
 <style>
   .page {
@@ -425,6 +516,31 @@
     display: flex;
     gap: 0.625rem;
     margin-top: 1.25rem;
+  }
+
+  .currency-dialog p {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+  .currency-dialog .rate {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .currency-dialog .warning {
+    color: #f87171;
+  }
+  .currency-dialog .muted-inline {
+    font-weight: 400;
+    color: var(--text-tertiary);
+  }
+  .dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-top: 1rem;
   }
 
   .data-location {

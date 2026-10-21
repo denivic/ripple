@@ -32,6 +32,8 @@ rust_xlsxwriter = "0.89"
 csv = "1"
 snap = "1"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+# Blocking HTTP for the exchange-rate fetch; rustls so no system OpenSSL.
+ureq = { version = "=3.4.2", default-features = false, features = ["rustls"] }
 
 [dev-dependencies]
 tempfile = "3"

@@ -41,6 +41,12 @@ export interface SettingsDto {
   currency: string;
 }
 
+export interface CurrencyConversionDto {
+  /** How many of the new currency one unit of the old was worth. */
+  rate: number;
+  convertedHabits: number;
+}
+
 export interface DailyPointDto {
   date: string;
   timeSpentMinutes: number;

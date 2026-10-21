@@ -1,4 +1,5 @@
 pub mod cost_model;
+pub mod currency;
 pub mod entry;
 pub mod habit;
 pub mod profile;

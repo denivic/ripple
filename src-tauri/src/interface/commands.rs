@@ -4,21 +4,25 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::application::export_workbook::ExportFormat;
-use crate::application::{compute_series, export_workbook, import_workbook, today_summary};
+use crate::application::{
+    compute_series, convert_currency as currency_conversion, export_workbook, import_workbook,
+    today_summary,
+};
 use crate::domain::cost_model::default_habit_presets;
 use crate::domain::repository::{
     EntryRepository, HabitRepository, ProfileRepository, SettingsRepository,
 };
 use crate::infrastructure::db::codec::{parse_date, parse_datetime};
 use crate::infrastructure::db::{
-    SqliteEntryRepository, SqliteHabitRepository, SqliteMappingRepository, SqliteProfileRepository,
-    SqliteSettingsRepository,
+    SqliteCurrencyConversionRepository, SqliteEntryRepository, SqliteHabitRepository,
+    SqliteMappingRepository, SqliteProfileRepository, SqliteSettingsRepository,
 };
+use crate::infrastructure::fx::FrankfurterRateSource;
 use crate::infrastructure::import::mapping::ColumnMapping;
 
 use super::dto::{
-    EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto, ProfileDto,
-    SettingsDto, TimelineDto, TodaySummaryDto,
+    CurrencyConversionDto, EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto,
+    ProfileDto, SettingsDto, TimelineDto, TodaySummaryDto,
 };
 use super::state::AppState;
 
@@ -197,6 +201,43 @@ pub fn save_settings(
         .map_err(|e| e.to_string())?;
     notify_changed(&app, "settings");
     Ok(())
+}
+
+/// Preview for the Settings conversion dialog. Async + spawn_blocking so the
+/// HTTP round trip never stalls the main thread.
+#[tauri::command]
+pub async fn fetch_exchange_rate(from: String, to: String) -> Result<f64, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        currency_conversion::fetch_rate(&FrankfurterRateSource::new(), &from, &to)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Re-denominates habits' cost per unit and the profile's hourly income at
+/// today's rate and switches the display currency, all in one transaction.
+#[tauri::command]
+pub async fn convert_currency(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    from: String,
+    to: String,
+) -> Result<CurrencyConversionDto, String> {
+    let db = Arc::clone(&state.db);
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        currency_conversion::convert_currency(
+            &FrankfurterRateSource::new(),
+            &SqliteCurrencyConversionRepository::new(db),
+            &from,
+            &to,
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    notify_changed(&app, "habits");
+    notify_changed(&app, "profile");
+    notify_changed(&app, "settings");
+    Ok(result.into())
 }
 
 #[tauri::command]

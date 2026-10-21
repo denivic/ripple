@@ -3,12 +3,13 @@ use serde::{Deserialize, Serialize};
 use crate::application::compute_series::{
     DailyPoint, HabitBreakdownItem, PeriodCompareResult, TimelineResult,
 };
+use crate::application::convert_currency::CurrencyConversion;
 use crate::application::import_workbook::{ImportPreview, ImportSummary};
 use crate::application::today_summary::TodaySummary;
 use crate::domain::cost_model::HabitPreset;
 use crate::domain::{
-    is_currency_code, Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute, WeekStart,
-    WeightUnit,
+    is_currency_code, Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute,
+    WeekStart, WeightUnit,
 };
 use crate::infrastructure::db::codec::{format_date, format_datetime, parse_date, parse_datetime};
 use crate::infrastructure::import::Sheet;
@@ -224,6 +225,22 @@ impl TryFrom<SettingsDto> for Settings {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CurrencyConversionDto {
+    pub rate: f64,
+    pub converted_habits: usize,
+}
+
+impl From<CurrencyConversion> for CurrencyConversionDto {
+    fn from(c: CurrencyConversion) -> Self {
+        Self {
+            rate: c.rate,
+            converted_habits: c.converted_habits,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyPointDto {
     pub date: String,
     pub time_spent_minutes: f64,
@@ -413,3 +430,4 @@ impl From<ImportSummary> for ImportSummaryDto {
         }
     }
 }
+

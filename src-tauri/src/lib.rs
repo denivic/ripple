@@ -39,6 +39,8 @@ pub fn run() {
             interface::commands::save_profile,
             interface::commands::get_settings,
             interface::commands::save_settings,
+            interface::commands::fetch_exchange_rate,
+            interface::commands::convert_currency,
             interface::commands::get_data_dir,
             interface::commands::backup_database,
             interface::commands::restore_database,

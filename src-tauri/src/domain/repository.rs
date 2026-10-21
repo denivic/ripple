@@ -44,3 +44,14 @@ pub trait SettingsRepository {
     fn get(&self) -> RepoResult<Settings>;
     fn save(&self, settings: &Settings) -> RepoResult<()>;
 }
+
+/// Re-denominates every stored money amount in one go. A port of its own
+/// rather than a method per repository, because the whole point is that the
+/// habit, profile and settings writes commit or roll back together.
+pub trait CurrencyConversionRepository {
+    /// Multiplies each habit's cost per unit and the profile's net hourly
+    /// income by `rate` and records `to` as the display currency — but only
+    /// if the stored currency is still `from`, so a stale caller can't
+    /// convert the same amounts twice. Returns how many habits were updated.
+    fn convert_amounts(&self, from: &str, to: &str, rate: f64) -> RepoResult<usize>;
+}

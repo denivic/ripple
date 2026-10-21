@@ -2,6 +2,7 @@ export { commands } from "./commands";
 export { formatLocalDate, formatLocalDateTime, parseLocalDate, parseLocalDateTime } from "./datetime";
 export type {
   ColumnMappingDto,
+  CurrencyConversionDto,
   EntryDto,
   HabitDto,
   HabitMappingDto,

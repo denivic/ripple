@@ -1,4 +1,5 @@
 pub(crate) mod codec;
+mod currency_repository;
 mod entry_repository;
 mod error;
 mod habit_repository;
@@ -12,6 +13,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use rusqlite::Connection;
 
+pub use currency_repository::SqliteCurrencyConversionRepository;
 pub use entry_repository::SqliteEntryRepository;
 pub use error::DbError;
 pub use habit_repository::SqliteHabitRepository;

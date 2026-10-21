@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   ColumnMappingDto,
+  CurrencyConversionDto,
   EntryDto,
   HabitDto,
   HabitPresetDto,
@@ -31,6 +32,8 @@ export const commands = {
 
   getSettings: () => invoke<SettingsDto>("get_settings"),
   saveSettings: (settings: SettingsDto) => invoke<void>("save_settings", { settings }),
+  fetchExchangeRate: (from: string, to: string) => invoke<number>("fetch_exchange_rate", { from, to }),
+  convertCurrency: (from: string, to: string) => invoke<CurrencyConversionDto>("convert_currency", { from, to }),
   getDataDir: () => invoke<string>("get_data_dir"),
   backupDatabase: (target: string) => invoke<void>("backup_database", { target }),
   restoreDatabase: (source: string) => invoke<void>("restore_database", { source }),
