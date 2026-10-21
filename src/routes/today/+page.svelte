@@ -4,7 +4,7 @@
   import Button from "$lib/ui/Button.svelte";
   import Field from "$lib/ui/Field.svelte";
   import Sheet from "$lib/ui/Sheet.svelte";
-  import { StatTile, formatDuration, formatMoney, formatPercent } from "$lib/charts";
+  import { StatTile, formatDuration, formatMoney, formatMoneyCompact, formatPercent } from "$lib/charts";
   import { habitsStore, settingsStore, todayStore } from "$lib/stores";
   import type { HabitPreset } from "$lib/ipc";
   import { filterPresets, formatPresetSource, groupPresets } from "$lib/habit-presets";
@@ -116,10 +116,18 @@
       {:else}
         <StatTile label="Life shortened (est.)" value={formatDuration(todayStore.summary.lifeShortenedMinutes)} />
       {/if}
-      <StatTile label="Spent" value={formatMoney(todayStore.summary.moneySpent)} />
+      <StatTile
+        label="Spent"
+        value={formatMoneyCompact(todayStore.summary.moneySpent)}
+        title={formatMoney(todayStore.summary.moneySpent)}
+      />
       <StatTile label="Share of today's waking hours" value={formatPercent(todayStore.summary.wakingLifeShareToday)} />
       {#if todayStore.summary.opportunityCost !== null}
-        <StatTile label="Opportunity cost" value={formatMoney(todayStore.summary.opportunityCost)} />
+        <StatTile
+          label="Opportunity cost"
+          value={formatMoneyCompact(todayStore.summary.opportunityCost)}
+          title={formatMoney(todayStore.summary.opportunityCost)}
+        />
       {/if}
       {#if todayStore.summary.projectedWakingMonthsLost !== null && todayStore.summary.lifeExpectancyAge !== null}
         {@const months = todayStore.summary.projectedWakingMonthsLost}

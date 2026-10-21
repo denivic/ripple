@@ -10,13 +10,45 @@
   interface Props {
     label: string;
     value: string;
+    /** Exact figure for the tooltip when `value` is rounded or compacted. */
+    title?: string;
     delta?: Delta;
     /** A short caveat under the value, for figures that need their assumptions spelled out. */
     hint?: string;
     trend?: Snippet;
   }
 
-  let { label, value, delta, hint, trend }: Props = $props();
+  let { label, value, title, delta, hint, trend }: Props = $props();
+
+  // Figures ("DKK 15,302", "4h 20m", "12 clean days") stay on one line and
+  // shrink to fit; only a sentence-length value wraps.
+  const singleToken = $derived(value.length <= 24 || !/ /.test(value.trim()));
+
+  const MAX_PX = 28;
+  const MIN_PX = 16;
+
+  /** Steps the font size down until the value fits the tile's width. */
+  function fit(node: HTMLElement, _value: string) {
+    const measure = () => {
+      if (!singleToken) {
+        node.style.fontSize = "";
+        return;
+      }
+      let size = MAX_PX;
+      node.style.fontSize = `${size}px`;
+      while (node.scrollWidth > node.clientWidth && size > MIN_PX) {
+        size -= 1;
+        node.style.fontSize = `${size}px`;
+      }
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    measure();
+    return {
+      update: measure,
+      destroy: () => observer.disconnect(),
+    };
+  }
 
   const deltaTone = $derived(
     !delta || delta.direction === "flat" ? "neutral" : delta.direction === delta.goodDirection ? "good" : "bad",
@@ -25,7 +57,7 @@
 
 <div class="stat-tile">
   <span class="label">{label}</span>
-  <span class="value">{value}</span>
+  <span class="value" class:single={singleToken} {title} use:fit={value}>{value}</span>
   {#if delta}
     <span class="delta {deltaTone}">{delta.text}</span>
   {/if}
@@ -39,6 +71,7 @@
 
 <style>
   .stat-tile {
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
@@ -59,7 +92,22 @@
     font-size: 1.75rem;
     font-weight: 600;
     letter-spacing: -0.02em;
+    line-height: 1.2;
     color: var(--text-primary);
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+
+  .value.single {
+    white-space: nowrap;
+    /* Last resort below MIN_PX: clip with an ellipsis; the title has it all. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Sentences read better a step down from the hero size. */
+  .value:not(.single) {
+    font-size: 1.125rem;
   }
 
   .delta {

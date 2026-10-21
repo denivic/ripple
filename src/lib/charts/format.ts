@@ -34,6 +34,22 @@ export function formatMoney(amount: number, currency = currencySource()): string
   return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
 }
 
+/**
+ * Money sized for a stat tile: cents only while they still matter, whole
+ * units from 1,000, and compact notation ("DKK 153K") from 100,000. Pair it
+ * with `formatMoney` for the exact figure in a tooltip.
+ */
+export function formatMoneyCompact(amount: number, currency = currencySource()): string {
+  const abs = Math.abs(amount);
+  const options: Intl.NumberFormatOptions =
+    abs >= 100_000
+      ? { notation: "compact", maximumFractionDigits: 1 }
+      : abs >= 1_000
+        ? { maximumFractionDigits: 0 }
+        : { maximumFractionDigits: 2 };
+  return new Intl.NumberFormat(undefined, { style: "currency", currency, ...options }).format(amount);
+}
+
 export function formatPercent(fraction: number, digits = 0): string {
   // Fixed locale (unlike formatCalendarDate): some locales insert a space
   // before "%", which reads poorly as a compact chart/badge value.

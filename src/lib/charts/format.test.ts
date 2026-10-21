@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { formatDuration, formatMoney, formatSignedPercent, multiScaleTimeFormat, setCurrencySource } from "./format";
+import { formatDuration, formatMoney, formatMoneyCompact, formatSignedPercent, multiScaleTimeFormat, setCurrencySource } from "./format";
 
 describe("formatDuration", () => {
   it("formats zero as 0m", () => {
@@ -92,5 +92,24 @@ describe("formatMoney", () => {
   it("an explicit currency argument wins over the source", () => {
     setCurrencySource(() => "EUR");
     expect(formatMoney(7, "CHF")).toBe(expected(7, "CHF"));
+  });
+});
+
+describe("formatMoneyCompact", () => {
+  const intl = (amount: number, options: Intl.NumberFormatOptions) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: "DKK", ...options }).format(amount);
+
+  it("keeps cents below 1,000", () => {
+    expect(formatMoneyCompact(302.46, "DKK")).toBe(intl(302.46, { maximumFractionDigits: 2 }));
+  });
+
+  it("drops cents from 1,000", () => {
+    expect(formatMoneyCompact(15_302.46, "DKK")).toBe(intl(15_302.46, { maximumFractionDigits: 0 }));
+  });
+
+  it("switches to compact notation from 100,000, including negatives", () => {
+    const compact = { notation: "compact", maximumFractionDigits: 1 } as const;
+    expect(formatMoneyCompact(153_020, "DKK")).toBe(intl(153_020, compact));
+    expect(formatMoneyCompact(-2_400_000, "DKK")).toBe(intl(-2_400_000, compact));
   });
 });

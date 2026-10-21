@@ -3,6 +3,7 @@ export {
   formatCalendarDate,
   formatDuration,
   formatMoney,
+  formatMoneyCompact,
   formatPercent,
   formatSignedPercent,
   multiScaleTimeFormat,
