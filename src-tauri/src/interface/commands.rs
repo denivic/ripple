@@ -275,6 +275,17 @@ pub fn restore_database(
     Ok(())
 }
 
+/// Erases all user data. The Settings page asks for confirmation first.
+#[tauri::command]
+pub fn reset_database(app: AppHandle, state: State<AppState>) -> Result<(), String> {
+    state.db.reset().map_err(|e| e.to_string())?;
+    notify_changed(&app, "habits");
+    notify_changed(&app, "entries");
+    notify_changed(&app, "profile");
+    notify_changed(&app, "settings");
+    Ok(())
+}
+
 #[tauri::command]
 pub fn export_theme(path: String, theme_json: String) -> Result<(), String> {
     std::fs::write(path, theme_json).map_err(|e| e.to_string())

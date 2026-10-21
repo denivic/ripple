@@ -234,6 +234,32 @@
       announce(`Restore failed: ${String(e)}`);
     }
   }
+
+  // --- Data: reset ------------------------------------------------------------
+
+  let resetOpen = $state(false);
+  let resetting = $state(false);
+  let resetError = $state<string | null>(null);
+
+  function closeResetDialog(): void {
+    if (resetting) return;
+    resetOpen = false;
+    resetError = null;
+  }
+
+  async function resetDatabase(): Promise<void> {
+    resetting = true;
+    try {
+      await commands.resetDatabase();
+      await settingsStore.load();
+      resetting = false;
+      closeResetDialog();
+      announce("Database reset. All data has been erased.");
+    } catch (e) {
+      resetError = `Reset failed: ${String(e)}`;
+      resetting = false;
+    }
+  }
 </script>
 
 <Toolbar title="Settings" />
@@ -366,6 +392,16 @@
         <Button variant="secondary" onclick={restoreBackup}>Restore from backup…</Button>
       </div>
     </section>
+
+    <section class="card danger-zone">
+      <h2>Danger zone</h2>
+      <p class="danger-copy">
+        Erase every habit, entry, profile field and setting and start from an empty database.
+      </p>
+      <div class="actions">
+        <Button variant="danger" onclick={() => (resetOpen = true)}>Reset database…</Button>
+      </div>
+    </section>
   {/if}
 </div>
 
@@ -388,6 +424,24 @@
       </Button>
       <Button variant="secondary" disabled={converting} onclick={relabelOnly}>Change symbol only</Button>
       <Button variant="ghost" disabled={converting} onclick={closeCurrencyDialog}>Cancel</Button>
+    </div>
+  </div>
+</Sheet>
+
+<Sheet open={resetOpen} title="Reset database?" onclose={closeResetDialog}>
+  <div class="reset-dialog">
+    <p class="warning">
+      This permanently deletes all your habits, logged entries, profile and settings. It cannot be undone.
+    </p>
+    <p>If you might want this data later, cancel and use “Back up now…” first.</p>
+    {#if resetError}
+      <p class="warning">{resetError}</p>
+    {/if}
+    <div class="dialog-actions">
+      <Button variant="ghost" disabled={resetting} onclick={closeResetDialog}>Cancel</Button>
+      <Button variant="danger" disabled={resetting} onclick={resetDatabase}>
+        {resetting ? "Erasing…" : "Erase everything"}
+      </Button>
     </div>
   </div>
 </Sheet>
@@ -536,6 +590,32 @@
     font-weight: 400;
     color: var(--text-tertiary);
   }
+  .danger-zone {
+    border-color: color-mix(in oklch, #d03b3b 45%, var(--line-hairline));
+  }
+  .danger-zone h2 {
+    color: #f87171;
+  }
+  .danger-copy {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+  .danger-zone .actions {
+    margin-top: 1rem;
+  }
+
+  .reset-dialog p {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+  .reset-dialog .warning {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #f87171;
+  }
+
   .dialog-actions {
     display: flex;
     flex-wrap: wrap;

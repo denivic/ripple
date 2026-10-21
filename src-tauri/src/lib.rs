@@ -44,6 +44,7 @@ pub fn run() {
             interface::commands::get_data_dir,
             interface::commands::backup_database,
             interface::commands::restore_database,
+            interface::commands::reset_database,
             interface::commands::export_theme,
             interface::commands::import_theme,
             interface::commands::compute_timeline,

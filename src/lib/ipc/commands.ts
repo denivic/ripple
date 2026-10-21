@@ -37,6 +37,7 @@ export const commands = {
   getDataDir: () => invoke<string>("get_data_dir"),
   backupDatabase: (target: string) => invoke<void>("backup_database", { target }),
   restoreDatabase: (source: string) => invoke<void>("restore_database", { source }),
+  resetDatabase: () => invoke<void>("reset_database"),
   exportTheme: (path: string, themeJson: string) => invoke<void>("export_theme", { path, themeJson }),
   importTheme: (path: string) => invoke<string>("import_theme", { path }),
 

@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
 
   interface Props {
-    variant?: "primary" | "secondary" | "ghost";
+    variant?: "primary" | "secondary" | "ghost" | "danger";
     disabled?: boolean;
     type?: "button" | "submit";
     onclick?: (e: MouseEvent) => void;
@@ -66,6 +66,15 @@
   }
   .btn-secondary:hover:not(:disabled) {
     background: var(--surface-hover);
+  }
+
+  /* Destructive actions only. Fixed hue, like the status colours elsewhere. */
+  .btn-danger {
+    background: #d03b3b;
+    color: #fff;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in oklch, #d03b3b 88%, black 12%);
   }
 
   .btn-ghost {

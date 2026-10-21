@@ -81,6 +81,26 @@ impl Db {
         *guard = new_conn;
         Ok(())
     }
+
+    /// Erases every habit, entry, profile field, setting and saved import
+    /// mapping, keeping the schema. One transaction, so a failure leaves the
+    /// data untouched; clearing `sqlite_sequence` restarts ids from 1.
+    pub fn reset(&self) -> RepoResult<()> {
+        let mut guard = self.lock()?;
+        let tx = guard.transaction()?;
+        tx.execute_batch(
+            "
+            DELETE FROM entries;
+            DELETE FROM habits;
+            DELETE FROM profile;
+            DELETE FROM settings;
+            DELETE FROM import_mappings;
+            DELETE FROM sqlite_sequence;
+            ",
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -139,5 +159,37 @@ mod tests {
         let list = habits.list(false).unwrap();
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].name, "Cigarettes");
+    }
+
+    #[test]
+    fn reset_erases_all_data_and_restarts_ids() {
+        use crate::domain::habit::Habit;
+        use crate::domain::repository::{HabitRepository, SettingsRepository};
+        use crate::domain::Settings;
+        use habit_repository::SqliteHabitRepository;
+        use settings_repository::SqliteSettingsRepository;
+        use std::sync::Arc;
+
+        let db = Arc::new(Db::open_in_memory().unwrap());
+        let habits = SqliteHabitRepository::new(Arc::clone(&db));
+        let settings = SqliteSettingsRepository::new(Arc::clone(&db));
+        habits
+            .insert(&Habit::new("Coffee".to_string(), "cup".to_string()))
+            .unwrap();
+        settings
+            .save(&Settings {
+                currency: "DKK".to_string(),
+                ..Settings::default()
+            })
+            .unwrap();
+
+        db.reset().unwrap();
+
+        assert!(habits.list(true).unwrap().is_empty());
+        assert_eq!(settings.get().unwrap(), Settings::default());
+        let id = habits
+            .insert(&Habit::new("Tea".to_string(), "cup".to_string()))
+            .unwrap();
+        assert_eq!(id.0, 1);
     }
 }
