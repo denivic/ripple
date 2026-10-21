@@ -33,6 +33,9 @@
   --surface-pressed: color-mix(in oklch, var(--surface-raised) 85%, black 15%);
   --accent-translucent: color-mix(in oklch, var(--accent-base) 20%, transparent);
   --focus-ring: color-mix(in oklch, var(--accent-base) 70%, white 30%);
+  /* Zero-value cells in heatmaps: a step off the card so the grid stays
+     readable; mixing toward the text colour works in light themes too. */
+  --chart-empty: color-mix(in oklch, var(--surface-raised) 90%, var(--text-primary) 10%);
 
   font-size: 16px;
 }

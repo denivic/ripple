@@ -14,11 +14,15 @@
   const CELL = 16;
   const GAP = 2;
   const LABEL_WIDTH = 30;
+  const TOP = 16;
+  const HOUR_TICKS = [0, 6, 12, 18, 23];
 
   const maxValue = $derived(matrix.reduce((m, row) => row.reduce((rm, v) => Math.max(rm, v), m), 0) || 1);
 
   function intensity(value: number): string {
-    if (value <= 0) return "var(--surface-raised)";
+    // Faint but visible: --surface-raised is the card colour, so empty
+    // slots drawn with it vanished and the grid lost its shape.
+    if (value <= 0) return "var(--chart-empty)";
     const pct = 12 + (value / maxValue) * 78;
     return `color-mix(in oklch, var(--accent-base) ${pct.toFixed(1)}%, var(--surface-raised))`;
   }
@@ -27,15 +31,20 @@
 </script>
 
 <div class="matrix-wrap">
-  <svg width={LABEL_WIDTH + 24 * (CELL + GAP)} height={7 * (CELL + GAP)}>
+  <svg width={LABEL_WIDTH + 24 * (CELL + GAP)} height={TOP + 7 * (CELL + GAP)}>
+    {#each HOUR_TICKS as hour (hour)}
+      <text x={LABEL_WIDTH + hour * (CELL + GAP) + CELL / 2} y={TOP - 5} class="col-label">
+        {String(hour).padStart(2, "0")}
+      </text>
+    {/each}
     {#each WEEKDAY_LABELS as label, row (label)}
-      <text x="0" y={row * (CELL + GAP) + CELL / 2 + 4} class="row-label">{label}</text>
+      <text x="0" y={TOP + row * (CELL + GAP) + CELL / 2 + 4} class="row-label">{label}</text>
     {/each}
     {#each matrix as row, weekday (weekday)}
       {#each row as value, hour (hour)}
         <rect
           x={LABEL_WIDTH + hour * (CELL + GAP)}
-          y={weekday * (CELL + GAP)}
+          y={TOP + weekday * (CELL + GAP)}
           width={CELL}
           height={CELL}
           rx="3"
@@ -50,7 +59,7 @@
   </svg>
   <Tooltip
     x={LABEL_WIDTH + (hovered?.hour ?? 0) * (CELL + GAP) + CELL / 2}
-    y={(hovered?.weekday ?? 0) * (CELL + GAP)}
+    y={TOP + (hovered?.weekday ?? 0) * (CELL + GAP)}
     visible={!!hovered}
   >
     {#if hovered}
@@ -74,6 +83,11 @@
   .row-label {
     font-size: 0.6875rem;
     fill: var(--text-tertiary);
+  }
+  .col-label {
+    font-size: 0.625rem;
+    fill: var(--text-tertiary);
+    text-anchor: middle;
   }
   .muted {
     color: var(--text-tertiary);

@@ -19,6 +19,9 @@
 
   const CELL = 12;
   const GAP = 3;
+  // Room for the month labels above and the weekday labels to the left.
+  const TOP = 16;
+  const LEFT = 28;
 
   const byDate = $derived(new Map(data.map((d) => [timeDay(d.date).getTime(), d.value])));
   const weekInterval = $derived(weekStart === "sunday" ? timeSunday : timeMonday);
@@ -40,8 +43,40 @@
   const maxValue = $derived(cells.reduce((m, c) => Math.max(m, c.value), 0) || 1);
   const columnCount = $derived(cells.reduce((m, c) => Math.max(m, c.column), 0) + 1);
 
+  // Month label over the first column that contains the 1st of that month
+  // (or the range start), so labels line up with the weeks they name.
+  const monthLabels = $derived.by(() => {
+    const out: { column: number; text: string }[] = [];
+    let lastMonth = -1;
+    for (const c of cells) {
+      const month = c.date.getMonth();
+      if (month !== lastMonth && (c.date.getDate() <= 7 || out.length === 0)) {
+        // Skip a label that would collide with the previous one.
+        if (out.length === 0 || c.column - out[out.length - 1].column >= 3) {
+          out.push({ column: c.column, text: MONTH_FORMAT.format(c.date) });
+        }
+        lastMonth = month;
+      }
+    }
+    return out;
+  });
+
+  const MONTH_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short" });
+  const WEEKDAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+  // Label every other row (Mon/Wed/Fri/Sun, or Sun/Tue/Thu/Sat when weeks
+  // start on Sunday) — all seven would crowd a 12px grid.
+  const weekdayLabels = $derived(
+    [0, 2, 4, 6].map((row) => {
+      // 2024-01-01 was a Monday; offset to the row's weekday.
+      const date = new Date(2024, 0, 1 + ((weekStart === "sunday" ? row - 1 : row) + 7) % 7);
+      return { row, text: WEEKDAY_FORMAT.format(date) };
+    }),
+  );
+
   function intensity(value: number): string {
-    if (value <= 0) return "var(--surface-raised)";
+    // Empty days get a faint but visible swatch: the card is --surface-raised
+    // too, so using it here made every empty day disappear.
+    if (value <= 0) return "var(--chart-empty)";
     const pct = 12 + (value / maxValue) * 78;
     return `color-mix(in oklch, var(--accent-base) ${pct.toFixed(1)}%, var(--surface-raised))`;
   }
@@ -49,12 +84,22 @@
   let hovered = $state<{ date: Date; value: number; column: number; row: number } | null>(null);
 </script>
 
-<div class="heatmap-wrap" style:width="{columnCount * (CELL + GAP)}px" style:height="{7 * (CELL + GAP)}px">
-  <svg width={columnCount * (CELL + GAP)} height={7 * (CELL + GAP)}>
+<div
+  class="heatmap-wrap"
+  style:width="{LEFT + columnCount * (CELL + GAP)}px"
+  style:height="{TOP + 7 * (CELL + GAP)}px"
+>
+  <svg width={LEFT + columnCount * (CELL + GAP)} height={TOP + 7 * (CELL + GAP)}>
+    {#each monthLabels as label (label.column)}
+      <text x={LEFT + label.column * (CELL + GAP)} y={TOP - 5} class="axis-label">{label.text}</text>
+    {/each}
+    {#each weekdayLabels as label (label.row)}
+      <text x="0" y={TOP + label.row * (CELL + GAP) + CELL - 2} class="axis-label">{label.text}</text>
+    {/each}
     {#each cells as cell (cell.date.getTime())}
       <rect
-        x={cell.column * (CELL + GAP)}
-        y={cell.row * (CELL + GAP)}
+        x={LEFT + cell.column * (CELL + GAP)}
+        y={TOP + cell.row * (CELL + GAP)}
         width={CELL}
         height={CELL}
         rx="3"
@@ -67,8 +112,8 @@
     {/each}
   </svg>
   <Tooltip
-    x={(hovered?.column ?? 0) * (CELL + GAP) + CELL / 2}
-    y={(hovered?.row ?? 0) * (CELL + GAP)}
+    x={LEFT + (hovered?.column ?? 0) * (CELL + GAP) + CELL / 2}
+    y={TOP + (hovered?.row ?? 0) * (CELL + GAP)}
     visible={!!hovered}
   >
     {#if hovered}
@@ -88,6 +133,10 @@
   }
   rect:hover {
     opacity: 0.8;
+  }
+  .axis-label {
+    font-size: 0.625rem;
+    fill: var(--text-tertiary);
   }
   .muted {
     color: var(--text-tertiary);
