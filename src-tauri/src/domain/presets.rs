@@ -34,6 +34,10 @@ pub struct HabitPreset {
     pub unit_label: &'static str,
     /// Positive means life lost per unit; negative means life gained.
     pub life_minutes_per_unit: f64,
+    /// Typical minutes one unit takes, for time-spent tracking. Unlike the
+    /// life figure this is not a research value, just an editable default;
+    /// 0 means the habit isn't time-tracked.
+    pub minutes_per_unit: f64,
     pub category: PresetCategory,
     /// Absent only for `Insufficient` presets where no source exists at all.
     pub source_title: Option<&'static str>,
@@ -57,6 +61,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Cigarettes",
         unit_label: "cigarette",
         life_minutes_per_unit: 20.0,
+        minutes_per_unit: 5.0,
         category: PresetCategory::Tobacco,
         source_title: Some("The price of a cigarette: 20 minutes of life? (Jackson, Jarvis & West, Addiction 2025;120(5):810-812)"),
         source_url: Some("https://doi.org/10.1111/add.16757"),
@@ -71,6 +76,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Alcoholic drinks (10 g)",
         unit_label: "drink (10 g alcohol)",
         life_minutes_per_unit: 15.0,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Alcohol,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
         source_url: Some("https://doi.org/10.1136/bmj.e8223"),
@@ -85,6 +91,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Alcoholic drinks (US standard)",
         unit_label: "US standard drink (14 g)",
         life_minutes_per_unit: 21.0,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Alcohol,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
         source_url: Some("https://doi.org/10.1136/bmj.e8223"),
@@ -99,6 +106,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Red meat",
         unit_label: "portion (85 g)",
         life_minutes_per_unit: 30.0,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Food,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
         source_url: Some("https://doi.org/10.1136/bmj.e8223"),
@@ -113,6 +121,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Watching TV",
         unit_label: "2 hours of TV",
         life_minutes_per_unit: 30.0,
+        minutes_per_unit: 120.0,
         category: PresetCategory::Sedentary,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
         source_url: Some("https://doi.org/10.1136/bmj.e8223"),
@@ -127,6 +136,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Hot dogs",
         unit_label: "hot dog in bun (140 g)",
         life_minutes_per_unit: 36.3,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Food,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -141,6 +151,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Bacon",
         unit_label: "serving (15 g, ~2 slices)",
         life_minutes_per_unit: 6.44,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Food,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -155,6 +166,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Deli ham",
         unit_label: "serving (55 g)",
         life_minutes_per_unit: 28.52,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Food,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -169,6 +181,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Pork sausage",
         unit_label: "serving (55 g)",
         life_minutes_per_unit: 22.15,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Food,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -183,6 +196,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Cheeseburgers",
         unit_label: "fast-food cheeseburger (140 g)",
         life_minutes_per_unit: 6.26,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Food,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -197,6 +211,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Pepperoni pizza",
         unit_label: "slice (140 g)",
         life_minutes_per_unit: 5.32,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Food,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -211,6 +226,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Sugary soda",
         unit_label: "can (12 oz / 360 g)",
         life_minutes_per_unit: 12.48,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Drink,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -225,6 +241,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Energy drinks",
         unit_label: "can",
         life_minutes_per_unit: 0.0,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Drink,
         source_title: None,
         source_url: None,
@@ -239,6 +256,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Moderate exercise",
         unit_label: "20 minutes (first of the day)",
         life_minutes_per_unit: -60.0,
+        minutes_per_unit: 20.0,
         category: PresetCategory::Gain,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
         source_url: Some("https://doi.org/10.1136/bmj.e8223"),
@@ -253,6 +271,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Fruit & vegetables (5 a day)",
         unit_label: "day with 5+ servings",
         life_minutes_per_unit: -120.0,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
         source_url: Some("https://doi.org/10.1136/bmj.e8223"),
@@ -267,6 +286,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Coffee (2-3 cups)",
         unit_label: "day with 2-3 cups",
         life_minutes_per_unit: -30.0,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
         source_url: Some("https://doi.org/10.1136/bmj.e8223"),
@@ -281,6 +301,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Nuts",
         unit_label: "handful (30 g peanuts)",
         life_minutes_per_unit: -25.5,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -295,6 +316,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Fruit",
         unit_label: "piece of fruit (140 g apple)",
         life_minutes_per_unit: -13.46,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -309,6 +331,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Salmon",
         unit_label: "serving (85 g)",
         life_minutes_per_unit: -15.98,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -323,6 +346,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Beans",
         unit_label: "serving (90 g cooked)",
         life_minutes_per_unit: -10.42,
+        minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
         source_title: Some("Small targeted dietary changes can yield substantial gains for human and environmental health (Stylianou, Fulgoni & Jolliet, Nature Food 2021;2:616-627, Supplementary Data 1, HENI per serving)"),
         source_url: Some("https://doi.org/10.1038/s43016-021-00343-4"),
@@ -337,6 +361,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Cigars",
         unit_label: "cigar",
         life_minutes_per_unit: 0.0,
+        minutes_per_unit: 45.0,
         category: PresetCategory::Tobacco,
         source_title: None,
         source_url: None,
@@ -351,6 +376,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Pipe tobacco",
         unit_label: "bowl",
         life_minutes_per_unit: 0.0,
+        minutes_per_unit: 20.0,
         category: PresetCategory::Tobacco,
         source_title: None,
         source_url: None,
@@ -365,6 +391,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Vaping / e-cigarettes",
         unit_label: "session",
         life_minutes_per_unit: 0.0,
+        minutes_per_unit: 5.0,
         category: PresetCategory::Tobacco,
         source_title: Some("A Magic Bullet? The Potential Impact of E-Cigarettes on the Toll of Cigarette Smoking (Mendez & Warner, Nicotine Tob Res 2021;23(4):654-661) - population model only, no per-use figure"),
         source_url: Some("https://doi.org/10.1093/ntr/ntaa160"),
@@ -379,6 +406,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         name: "Cannabis joints",
         unit_label: "joint",
         life_minutes_per_unit: 0.0,
+        minutes_per_unit: 10.0,
         category: PresetCategory::Cannabis,
         source_title: None,
         source_url: None,
@@ -429,6 +457,21 @@ mod tests {
                 assert!(!title.trim().is_empty(), "{}", p.id);
             }
         }
+    }
+
+    #[test]
+    fn minutes_per_unit_are_finite_and_non_negative() {
+        for p in habit_presets() {
+            assert!(
+                p.minutes_per_unit.is_finite() && p.minutes_per_unit >= 0.0,
+                "{}",
+                p.id
+            );
+        }
+        let by_id = |id: &str| habit_presets().iter().find(|p| p.id == id).unwrap();
+        assert_eq!(by_id("cigarette").minutes_per_unit, 5.0);
+        assert_eq!(by_id("tv-2h").minutes_per_unit, 120.0);
+        assert_eq!(by_id("coffee-2-3-cups").minutes_per_unit, 0.0);
     }
 
     #[test]

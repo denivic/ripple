@@ -19,6 +19,8 @@ export interface Habit {
   name: string;
   unitLabel: string;
   lifeMinutesPerUnit: number;
+  /** Time spent per unit when an entry has no duration; 0 = not time-tracked. */
+  minutesPerUnit: number;
   costPerUnit: number;
   color: string | null;
   archived: boolean;

@@ -23,6 +23,7 @@
   let newHabitName = $state("");
   let newHabitUnit = $state("");
   let newHabitLifeMinutes = $state(0);
+  let newHabitMinutesPerUnit = $state(0);
   let newHabitCost = $state(0);
 
   let presetQuery = $state("");
@@ -44,6 +45,7 @@
     newHabitName = preset.name;
     newHabitUnit = preset.unitLabel;
     newHabitLifeMinutes = preset.lifeMinutesPerUnit;
+    newHabitMinutesPerUnit = preset.minutesPerUnit;
   }
 
   function presetOptions(): HTMLButtonElement[] {
@@ -78,6 +80,7 @@
       name: newHabitName.trim(),
       unitLabel: newHabitUnit.trim(),
       lifeMinutesPerUnit: Number(newHabitLifeMinutes) || 0,
+      minutesPerUnit: Math.max(0, Number(newHabitMinutesPerUnit) || 0),
       costPerUnit: Number(newHabitCost) || 0,
       color: null,
       archived: false,
@@ -85,6 +88,7 @@
     newHabitName = "";
     newHabitUnit = "";
     newHabitLifeMinutes = 0;
+    newHabitMinutesPerUnit = 0;
     newHabitCost = 0;
     closeAddHabit();
   }
@@ -228,6 +232,12 @@
     <Field label="Name" bind:value={newHabitName} />
     <Field label="Unit (e.g. cigarette, drink)" bind:value={newHabitUnit} />
     <Field label="Life effect per unit (minutes; negative = gained)" type="number" bind:value={newHabitLifeMinutes} />
+    <Field
+      label="Minutes per unit (time spent)"
+      type="number"
+      hint="Used when an entry has no duration. 0 means time isn't tracked."
+      bind:value={newHabitMinutesPerUnit}
+    />
     <Field label="Cost per unit ({settingsStore.data.currency})" type="number" bind:value={newHabitCost} />
 
     {#if selectedPreset}

@@ -8,6 +8,7 @@ function preset(overrides: Partial<HabitPreset>): HabitPreset {
     name: "X",
     unitLabel: "unit",
     lifeMinutesPerUnit: 0,
+    minutesPerUnit: 0,
     category: "food",
     sourceTitle: "A study",
     sourceUrl: "https://doi.org/10/x",

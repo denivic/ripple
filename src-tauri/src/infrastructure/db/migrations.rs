@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use super::error::DbError;
 
-const CURRENT_VERSION: i32 = 4;
+const CURRENT_VERSION: i32 = 5;
 
 /// Versioned via `PRAGMA user_version` rather than a migrations table — the
 /// whole schema lives in this file for now, so there's nothing a table would
@@ -20,6 +20,9 @@ pub fn run(conn: &Connection) -> Result<(), DbError> {
     }
     if version < 4 {
         migrate_v4(conn)?;
+    }
+    if version < 5 {
+        migrate_v5(conn)?;
     }
     conn.pragma_update(None, "user_version", CURRENT_VERSION)?;
     Ok(())
@@ -111,6 +114,17 @@ fn migrate_v4(conn: &Connection) -> Result<(), DbError> {
     Ok(())
 }
 
+fn migrate_v5(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "
+        -- Default time spent per unit, used when an entry has no duration.
+        -- 0 means not time-tracked, which is what existing habits were.
+        ALTER TABLE habits ADD COLUMN minutes_per_unit REAL NOT NULL DEFAULT 0;
+        ",
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -142,7 +156,7 @@ mod tests {
 
         run(&conn).unwrap();
 
-        assert_eq!(user_version(&conn), 4);
+        assert_eq!(user_version(&conn), CURRENT_VERSION);
         let (currency, weight_unit): (String, String) = conn
             .query_row(
                 "SELECT currency, weight_unit FROM settings WHERE id = 1",
@@ -152,5 +166,33 @@ mod tests {
             .unwrap();
         assert_eq!(currency, "USD");
         assert_eq!(weight_unit, "lb");
+    }
+
+    #[test]
+    fn v5_adds_minutes_per_unit_defaulting_to_zero_on_an_existing_v4_row() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        conn.pragma_update(None, "user_version", 4).unwrap();
+        conn.execute(
+            "INSERT INTO habits (name, unit_label, life_minutes_per_unit) VALUES ('Cigarettes', 'cigarette', 20)",
+            [],
+        )
+        .unwrap();
+
+        run(&conn).unwrap();
+
+        assert_eq!(user_version(&conn), 5);
+        let (minutes_per_unit, life_minutes): (f64, f64) = conn
+            .query_row(
+                "SELECT minutes_per_unit, life_minutes_per_unit FROM habits WHERE name = 'Cigarettes'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(minutes_per_unit, 0.0);
+        assert_eq!(life_minutes, 20.0);
     }
 }

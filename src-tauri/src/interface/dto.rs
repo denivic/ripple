@@ -24,6 +24,7 @@ pub struct HabitDto {
     pub name: String,
     pub unit_label: String,
     pub life_minutes_per_unit: f64,
+    pub minutes_per_unit: f64,
     pub cost_per_unit: f64,
     pub color: Option<String>,
     pub archived: bool,
@@ -36,6 +37,7 @@ impl From<Habit> for HabitDto {
             name: h.name,
             unit_label: h.unit_label,
             life_minutes_per_unit: h.life_minutes_per_unit,
+            minutes_per_unit: h.minutes_per_unit,
             cost_per_unit: h.cost_per_unit,
             color: h.color,
             archived: h.archived,
@@ -48,6 +50,7 @@ impl From<HabitDto> for Habit {
         let mut habit = Habit::new(d.name, d.unit_label);
         habit.id = d.id.map(HabitId);
         habit.life_minutes_per_unit = d.life_minutes_per_unit;
+        habit.minutes_per_unit = d.minutes_per_unit;
         habit.cost_per_unit = d.cost_per_unit;
         habit.color = d.color;
         habit.archived = d.archived;
@@ -366,6 +369,8 @@ pub struct HabitPresetDto {
     pub unit_label: String,
     /// Positive = life lost per unit, negative = life gained.
     pub life_minutes_per_unit: f64,
+    /// Editable default for time spent per unit, not a research figure.
+    pub minutes_per_unit: f64,
     pub category: String,
     pub source_title: Option<String>,
     pub source_url: Option<String>,
@@ -383,6 +388,7 @@ impl From<&HabitPreset> for HabitPresetDto {
             name: p.name.to_string(),
             unit_label: p.unit_label.to_string(),
             life_minutes_per_unit: p.life_minutes_per_unit,
+            minutes_per_unit: p.minutes_per_unit,
             category: match p.category {
                 PresetCategory::Tobacco => "tobacco",
                 PresetCategory::Alcohol => "alcohol",
@@ -497,6 +503,7 @@ mod tests {
         let json = serde_json::to_value(HabitPresetDto::from(cigar)).unwrap();
         assert_eq!(json["unitLabel"], "cigar");
         assert_eq!(json["lifeMinutesPerUnit"], 0.0);
+        assert_eq!(json["minutesPerUnit"], 45.0);
         assert_eq!(json["confidence"], "insufficient");
         assert!(json["sourceUrl"].is_null());
         assert!(json["year"].is_null());

@@ -17,7 +17,8 @@ impl SqliteHabitRepository {
     }
 }
 
-const COLUMNS: &str = "id, name, unit_label, life_minutes_per_unit, cost_per_unit, color, archived";
+const COLUMNS: &str =
+    "id, name, unit_label, life_minutes_per_unit, minutes_per_unit, cost_per_unit, color, archived";
 
 fn row_to_habit(row: &Row) -> rusqlite::Result<Habit> {
     Ok(Habit {
@@ -25,9 +26,10 @@ fn row_to_habit(row: &Row) -> rusqlite::Result<Habit> {
         name: row.get(1)?,
         unit_label: row.get(2)?,
         life_minutes_per_unit: row.get(3)?,
-        cost_per_unit: row.get(4)?,
-        color: row.get(5)?,
-        archived: row.get::<_, i64>(6)? != 0,
+        minutes_per_unit: row.get(4)?,
+        cost_per_unit: row.get(5)?,
+        color: row.get(6)?,
+        archived: row.get::<_, i64>(7)? != 0,
     })
 }
 
@@ -35,12 +37,13 @@ impl HabitRepository for SqliteHabitRepository {
     fn insert(&self, habit: &Habit) -> RepoResult<HabitId> {
         let conn = self.db.lock()?;
         conn.execute(
-            "INSERT INTO habits (name, unit_label, life_minutes_per_unit, cost_per_unit, color, archived)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO habits (name, unit_label, life_minutes_per_unit, minutes_per_unit, cost_per_unit, color, archived)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 habit.name,
                 habit.unit_label,
                 habit.life_minutes_per_unit,
+                habit.minutes_per_unit,
                 habit.cost_per_unit,
                 habit.color,
                 habit.archived as i64,
@@ -56,11 +59,12 @@ impl HabitRepository for SqliteHabitRepository {
         let conn = self.db.lock()?;
         conn.execute(
             "UPDATE habits SET name = ?1, unit_label = ?2, life_minutes_per_unit = ?3,
-             cost_per_unit = ?4, color = ?5, archived = ?6 WHERE id = ?7",
+             minutes_per_unit = ?4, cost_per_unit = ?5, color = ?6, archived = ?7 WHERE id = ?8",
             params![
                 habit.name,
                 habit.unit_label,
                 habit.life_minutes_per_unit,
+                habit.minutes_per_unit,
                 habit.cost_per_unit,
                 habit.color,
                 habit.archived as i64,
@@ -117,6 +121,7 @@ mod tests {
         let repo = repo();
         let mut habit = Habit::new("Cigarettes", "cigarette");
         habit.life_minutes_per_unit = 11.0;
+        habit.minutes_per_unit = 5.0;
         habit.cost_per_unit = 0.6;
         habit.color = Some("#2DD4BF".to_string());
         let id = repo.insert(&habit).unwrap();
@@ -124,6 +129,7 @@ mod tests {
         let fetched = repo.get(id).unwrap().unwrap();
         assert_eq!(fetched.name, "Cigarettes");
         assert_eq!(fetched.life_minutes_per_unit, 11.0);
+        assert_eq!(fetched.minutes_per_unit, 5.0);
         assert_eq!(fetched.color.as_deref(), Some("#2DD4BF"));
         assert!(!fetched.archived);
     }
@@ -145,8 +151,11 @@ mod tests {
         let id = repo.insert(&Habit::new("Cigarettes", "cigarette")).unwrap();
         let mut habit = repo.get(id).unwrap().unwrap();
         habit.cost_per_unit = 0.75;
+        habit.minutes_per_unit = 12.5;
         repo.update(&habit).unwrap();
 
-        assert_eq!(repo.get(id).unwrap().unwrap().cost_per_unit, 0.75);
+        let fetched = repo.get(id).unwrap().unwrap();
+        assert_eq!(fetched.cost_per_unit, 0.75);
+        assert_eq!(fetched.minutes_per_unit, 12.5);
     }
 }

@@ -155,6 +155,12 @@
     })),
   );
 
+  // An all-zero Time chart means nothing is time-tracked, not that no time
+  // was spent — say how to fix it instead of drawing empty bars.
+  const breakdownTimeUntracked = $derived(
+    breakdownMetric === "time" && breakdownItems.every((item) => habitValue(item) === 0),
+  );
+
   function breakdownValueLabel(value: number): string {
     return breakdownMetric === "money" ? formatMoney(value) : formatDuration(value);
   }
@@ -273,25 +279,29 @@
           <button class:active={breakdownMetric === "money"} onclick={() => (breakdownMetric = "money")}>Money</button>
         </div>
       </div>
-      <div class="chart-frame" bind:clientWidth={breakdownWidth}>
-        <svg width={breakdownWidth} height={Math.max(1, breakdownItems.length) * BREAKDOWN_ROW_HEIGHT}>
-          {#each breakdownItems as item, i (item.habitId)}
-            <text x={0} y={i * BREAKDOWN_ROW_HEIGHT + BREAKDOWN_ROW_HEIGHT / 2 + 4} class="row-label">
-              {habitsStore.byId(item.habitId)?.name ?? "Unknown"}
-            </text>
-            <text
-              x={BREAKDOWN_LABEL_WIDTH + breakdownX(habitValue(item)) + 8}
-              y={i * BREAKDOWN_ROW_HEIGHT + BREAKDOWN_ROW_HEIGHT / 2 + 4}
-              class="row-value"
-            >
-              {breakdownValueLabel(habitValue(item))}
-            </text>
-          {/each}
-          <g transform="translate({BREAKDOWN_LABEL_WIDTH}, 0)">
-            <BarSeries bars={breakdownBars} baseline={0} orientation="horizontal" />
-          </g>
-        </svg>
-      </div>
+      {#if breakdownTimeUntracked}
+        <p class="muted">No time tracked yet — set Minutes per unit on a habit, or add durations in the Ledger.</p>
+      {:else}
+        <div class="chart-frame" bind:clientWidth={breakdownWidth}>
+          <svg width={breakdownWidth} height={Math.max(1, breakdownItems.length) * BREAKDOWN_ROW_HEIGHT}>
+            {#each breakdownItems as item, i (item.habitId)}
+              <text x={0} y={i * BREAKDOWN_ROW_HEIGHT + BREAKDOWN_ROW_HEIGHT / 2 + 4} class="row-label">
+                {habitsStore.byId(item.habitId)?.name ?? "Unknown"}
+              </text>
+              <text
+                x={BREAKDOWN_LABEL_WIDTH + breakdownX(habitValue(item)) + 8}
+                y={i * BREAKDOWN_ROW_HEIGHT + BREAKDOWN_ROW_HEIGHT / 2 + 4}
+                class="row-value"
+              >
+                {breakdownValueLabel(habitValue(item))}
+              </text>
+            {/each}
+            <g transform="translate({BREAKDOWN_LABEL_WIDTH}, 0)">
+              <BarSeries bars={breakdownBars} baseline={0} orientation="horizontal" />
+            </g>
+          </svg>
+        </div>
+      {/if}
     </section>
 
     <section class="chart-card stat-row">

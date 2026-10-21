@@ -5,6 +5,7 @@ export interface HabitDto {
   name: string;
   unitLabel: string;
   lifeMinutesPerUnit: number;
+  minutesPerUnit: number;
   costPerUnit: number;
   color: string | null;
   archived: boolean;
@@ -103,6 +104,8 @@ export interface HabitPresetDto {
   unitLabel: string;
   /** Positive = life lost per unit, negative = life gained. */
   lifeMinutesPerUnit: number;
+  /** Editable default for time spent per unit, not a research figure; 0 = not time-tracked. */
+  minutesPerUnit: number;
   category: PresetCategory;
   /** Null only for "insufficient" presets with no source at all. */
   sourceTitle: string | null;

@@ -9,6 +9,9 @@ pub struct Habit {
     pub name: String,
     pub unit_label: String,
     pub life_minutes_per_unit: f64,
+    /// Time spent per unit when an entry has no explicit duration; 0 means
+    /// the habit isn't time-tracked.
+    pub minutes_per_unit: f64,
     pub cost_per_unit: f64,
     pub color: Option<String>,
     pub archived: bool,
@@ -21,6 +24,7 @@ impl Habit {
             name: name.into(),
             unit_label: unit_label.into(),
             life_minutes_per_unit: 0.0,
+            minutes_per_unit: 0.0,
             cost_per_unit: 0.0,
             color: None,
             archived: false,

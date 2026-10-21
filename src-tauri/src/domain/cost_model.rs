@@ -58,9 +58,13 @@ impl TimeLoss {
     }
 }
 
+/// An explicit entry duration (even 0) wins; otherwise time spent falls back
+/// to the habit's default minutes per unit.
 pub fn time_loss_for_entry(habit: &Habit, entry: &Entry) -> TimeLoss {
     TimeLoss {
-        time_spent_minutes: entry.duration_minutes.unwrap_or(0.0),
+        time_spent_minutes: entry
+            .duration_minutes
+            .unwrap_or(entry.quantity * habit.minutes_per_unit),
         life_shortened_minutes: entry.quantity * habit.life_minutes_per_unit,
     }
 }
@@ -177,6 +181,25 @@ mod tests {
         assert_eq!(loss.time_spent_minutes, 20.0);
         assert_eq!(loss.life_shortened_minutes, 44.0);
         assert_eq!(loss.total_minutes(), 64.0);
+    }
+
+    #[test]
+    fn time_spent_falls_back_to_minutes_per_unit() {
+        let mut h = habit();
+        h.minutes_per_unit = 5.0;
+        let e = Entry::new(HabitId(1), datetime!(2026-01-01 08:00), 3.0);
+        assert_eq!(time_loss_for_entry(&h, &e).time_spent_minutes, 15.0);
+    }
+
+    #[test]
+    fn explicit_duration_overrides_minutes_per_unit() {
+        let mut h = habit();
+        h.minutes_per_unit = 5.0;
+        let mut e = Entry::new(HabitId(1), datetime!(2026-01-01 08:00), 3.0);
+        e.duration_minutes = Some(7.0);
+        assert_eq!(time_loss_for_entry(&h, &e).time_spent_minutes, 7.0);
+        e.duration_minutes = Some(0.0);
+        assert_eq!(time_loss_for_entry(&h, &e).time_spent_minutes, 0.0);
     }
 
     #[test]
