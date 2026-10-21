@@ -4,7 +4,7 @@
   import Button from "$lib/ui/Button.svelte";
   import Field from "$lib/ui/Field.svelte";
   import Sheet from "$lib/ui/Sheet.svelte";
-  import { StatTile, formatDuration, formatMoney, formatMoneyCompact, formatPercent } from "$lib/charts";
+  import { StatTile, formatDuration, formatMoney, formatMoneyCompactParts, formatPercent } from "$lib/charts";
   import { habitsStore, settingsStore, todayStore } from "$lib/stores";
   import type { HabitPreset } from "$lib/ipc";
   import { filterPresets, formatPresetSource, groupPresets } from "$lib/habit-presets";
@@ -90,6 +90,9 @@
   }
 
   // Life expectancy can be fractional (e.g. 81.5); whole ages print bare.
+  // Split so the tile can size the figure and wrap the currency separately.
+  const spentParts = $derived(formatMoneyCompactParts(todayStore.summary?.moneySpent ?? 0));
+
   function formatAge(years: number): string {
     return String(Number(years.toFixed(1)));
   }
@@ -118,14 +121,19 @@
       {/if}
       <StatTile
         label="Spent"
-        value={formatMoneyCompact(todayStore.summary.moneySpent)}
+        value={spentParts.figure}
+        unit={spentParts.unit}
+        unitPosition={spentParts.unitPosition}
         title={formatMoney(todayStore.summary.moneySpent)}
       />
       <StatTile label="Share of today's waking hours" value={formatPercent(todayStore.summary.wakingLifeShareToday)} />
       {#if todayStore.summary.opportunityCost !== null}
+        {@const cost = formatMoneyCompactParts(todayStore.summary.opportunityCost)}
         <StatTile
           label="Opportunity cost"
-          value={formatMoneyCompact(todayStore.summary.opportunityCost)}
+          value={cost.figure}
+          unit={cost.unit}
+          unitPosition={cost.unitPosition}
           title={formatMoney(todayStore.summary.opportunityCost)}
         />
       {/if}

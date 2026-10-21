@@ -12,43 +12,21 @@
     value: string;
     /** Exact figure for the tooltip when `value` is rounded or compacted. */
     title?: string;
+    /** A currency or unit shown smaller beside `value`; it wraps onto its own
+        line when the tile is too narrow, so the figure keeps the full width. */
+    unit?: string;
+    unitPosition?: "before" | "after";
     delta?: Delta;
     /** A short caveat under the value, for figures that need their assumptions spelled out. */
     hint?: string;
     trend?: Snippet;
   }
 
-  let { label, value, title, delta, hint, trend }: Props = $props();
+  let { label, value, title, unit, unitPosition = "before", delta, hint, trend }: Props = $props();
 
   // Figures ("DKK 15,302", "4h 20m", "12 clean days") stay on one line and
-  // shrink to fit; only a sentence-length value wraps.
+  // shrink to fit the tile — never clipped; only a sentence-length value wraps.
   const singleToken = $derived(value.length <= 24 || !/ /.test(value.trim()));
-
-  const MAX_PX = 28;
-  const MIN_PX = 16;
-
-  /** Steps the font size down until the value fits the tile's width. */
-  function fit(node: HTMLElement, _value: string) {
-    const measure = () => {
-      if (!singleToken) {
-        node.style.fontSize = "";
-        return;
-      }
-      let size = MAX_PX;
-      node.style.fontSize = `${size}px`;
-      while (node.scrollWidth > node.clientWidth && size > MIN_PX) {
-        size -= 1;
-        node.style.fontSize = `${size}px`;
-      }
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    measure();
-    return {
-      update: measure,
-      destroy: () => observer.disconnect(),
-    };
-  }
 
   const deltaTone = $derived(
     !delta || delta.direction === "flat" ? "neutral" : delta.direction === delta.goodDirection ? "good" : "bad",
@@ -57,7 +35,10 @@
 
 <div class="stat-tile">
   <span class="label">{label}</span>
-  <span class="value" class:single={singleToken} {title} use:fit={value}>{value}</span>
+  <span class="value" class:single={singleToken} class:unit-after={unitPosition === "after"} {title}>
+    {#if unit}<span class="unit">{unit}</span>{/if}
+    <span class="figure" style:--chars={value.length}>{value}</span>
+  </span>
   {#if delta}
     <span class="delta {deltaTone}">{delta.text}</span>
   {/if}
@@ -72,6 +53,8 @@
 <style>
   .stat-tile {
     min-width: 0;
+    /* Lets .value size itself against the tile's width (cqi units). */
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
@@ -99,10 +82,29 @@
   }
 
   .value.single {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.3em;
+  }
+
+  .value.single .figure {
     white-space: nowrap;
-    /* Last resort below MIN_PX: clip with an ellipsis; the title has it all. */
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Pure CSS, so it holds on first paint and on every resize: cap at the
+       display size, otherwise give each character an equal share of the
+       tile's width (~0.7em covers a bold digit or capital, with headroom). */
+    font-size: min(1.75rem, calc(100cqi / (var(--chars) * 0.7)));
+  }
+
+  .unit {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .unit-after .unit {
+    order: 1;
   }
 
   /* Sentences read better a step down from the hero size. */

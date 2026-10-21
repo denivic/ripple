@@ -50,6 +50,35 @@ export function formatMoneyCompact(amount: number, currency = currencySource()):
   return new Intl.NumberFormat(undefined, { style: "currency", currency, ...options }).format(amount);
 }
 
+export interface MoneyParts {
+  /** The currency symbol or code as the locale renders it ("DKK", "kr.", "$"). */
+  unit: string;
+  unitPosition: "before" | "after";
+  /** Everything else, sign included ("-15,302"). */
+  figure: string;
+}
+
+/**
+ * `formatMoneyCompact`, split so a tile can size the figure and the currency
+ * independently and move the currency onto its own line when space is short.
+ */
+export function formatMoneyCompactParts(amount: number, currency = currencySource()): MoneyParts {
+  const formatted = formatMoneyCompact(amount, currency);
+  const parts = new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    ...(Math.abs(amount) >= 100_000 ? { notation: "compact" as const, maximumFractionDigits: 1 } : {}),
+  }).formatToParts(amount);
+  const unitIndex = parts.findIndex((p) => p.type === "currency");
+  const firstNumberIndex = parts.findIndex((p) => p.type === "integer");
+  if (unitIndex === -1) return { unit: "", unitPosition: "before", figure: formatted };
+  const unit = parts[unitIndex].value;
+  // Strip the unit (and the space Intl puts next to it) from the full string
+  // rather than re-joining parts, so fraction digits match formatMoneyCompact.
+  const figure = formatted.replace(unit, "").replace(/^[\s  ]+|[\s  ]+$/g, "").replace(/(-|−)[\s  ]+/, "$1");
+  return { unit, unitPosition: unitIndex < firstNumberIndex ? "before" : "after", figure };
+}
+
 export function formatPercent(fraction: number, digits = 0): string {
   // Fixed locale (unlike formatCalendarDate): some locales insert a space
   // before "%", which reads poorly as a compact chart/badge value.

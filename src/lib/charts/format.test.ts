@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { formatDuration, formatMoney, formatMoneyCompact, formatSignedPercent, multiScaleTimeFormat, setCurrencySource } from "./format";
+import { formatDuration, formatMoney, formatMoneyCompact, formatMoneyCompactParts, formatSignedPercent, multiScaleTimeFormat, setCurrencySource } from "./format";
 
 describe("formatDuration", () => {
   it("formats zero as 0m", () => {
@@ -111,5 +111,23 @@ describe("formatMoneyCompact", () => {
     const compact = { notation: "compact", maximumFractionDigits: 1 } as const;
     expect(formatMoneyCompact(153_020, "DKK")).toBe(intl(153_020, compact));
     expect(formatMoneyCompact(-2_400_000, "DKK")).toBe(intl(-2_400_000, compact));
+  });
+});
+
+describe("formatMoneyCompactParts", () => {
+  it("splits the currency from the figure without losing anything", () => {
+    for (const amount of [0, 302.46, 15_302.46, -15_302.46, 153_020, 1_000_000_000_000]) {
+      const { unit, figure } = formatMoneyCompactParts(amount, "DKK");
+      const full = formatMoneyCompact(amount, "DKK");
+      expect(unit).not.toBe("");
+      expect(full).toContain(unit);
+      expect(figure).not.toContain(unit);
+      // Same digits, separators and sign, just without the unit and its spacing.
+      expect(figure.replace(/[\s  ]/g, "")).toBe(full.replace(unit, "").replace(/[\s  ]/g, ""));
+    }
+  });
+
+  it("keeps a trillion short", () => {
+    expect(formatMoneyCompactParts(1_000_000_000_000, "DKK").figure.length).toBeLessThanOrEqual(5);
   });
 });

@@ -4,6 +4,7 @@ export {
   formatDuration,
   formatMoney,
   formatMoneyCompact,
+  formatMoneyCompactParts,
   formatPercent,
   formatSignedPercent,
   multiScaleTimeFormat,
