@@ -1,16 +1,16 @@
 # Graph Report - ripple  (2026-10-21)
 
 ## Corpus Check
-- 142 files · ~50,543 words
+- 142 files · ~50,900 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1184 nodes · 2603 edges · 67 communities (37 shown, 16 thin omitted)
+- 1185 nodes · 2606 edges · 62 communities (32 shown, 16 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 74 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a130152a`
+- Built from commit: `2530670a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,7 +30,7 @@
 - mapping.rs
 - cell_storage.rs
 - tauri.conf.json
-- repository.rs
+- today_summary.rs
 - stores/index.ts
 - ExportError
 - devDependencies
@@ -43,29 +43,24 @@
 - @sveltejs/adapter-static
 - package.json
 - @types/d3-shape
-- XlsxSource
+- repository.rs
 - svelte.config.js
 - vite
 - svelte-check
 - Tauri
 - navigation.ts
 - settings_repository.rs
-- .sheets
+- ImportError
 - TypeScript
 - Vite
 - ssr
 - models.ts
 - today/+page.svelte
-- import_workbook.rs
-- ColumnMapping
 - habit-presets.ts
 - graphify
 - ripple
-- Sheet
 - onDataChanged
-- ImportPreview
 - HabitsStore
-- DbError
 - TimelineStore
 - README.md (Tauri+SvelteKit+TS template)
 
@@ -90,16 +85,16 @@
   src-tauri/src/application/convert_currency.rs → src-tauri/src/domain/settings.rs
 - `export_entries()` --calls--> `format_datetime()`  [INFERRED]
   src-tauri/src/application/export_workbook.rs → src-tauri/src/infrastructure/db/codec.rs
-- `apply_import()` --calls--> `apply_mapping()`  [INFERRED]
-  src-tauri/src/application/import_workbook.rs → src-tauri/src/infrastructure/import/mapping.rs
+- `compute_today_summary()` --calls--> `money_spent_for_entry()`  [INFERRED]
+  src-tauri/src/application/today_summary.rs → src-tauri/src/domain/cost_model.rs
 
 ## Import Cycles
-- 2-file cycle: `src-tauri/src/infrastructure/db/entry_repository.rs -> src-tauri/src/infrastructure/db/mod.rs -> src-tauri/src/infrastructure/db/entry_repository.rs`
 - 2-file cycle: `src-tauri/src/infrastructure/db/mapping_repository.rs -> src-tauri/src/infrastructure/db/mod.rs -> src-tauri/src/infrastructure/db/mapping_repository.rs`
+- 2-file cycle: `src-tauri/src/infrastructure/db/entry_repository.rs -> src-tauri/src/infrastructure/db/mod.rs -> src-tauri/src/infrastructure/db/entry_repository.rs`
 - 2-file cycle: `src-tauri/src/infrastructure/db/mod.rs -> src-tauri/src/infrastructure/db/settings_repository.rs -> src-tauri/src/infrastructure/db/mod.rs`
 - 4-file cycle: `src/lib/grid/ImportWizard.svelte -> src/lib/stores/index.ts -> src/lib/stores/ledger.svelte.ts -> src/lib/grid/index.ts -> src/lib/grid/ImportWizard.svelte`
 
-## Communities (67 total, 16 thin omitted)
+## Communities (62 total, 16 thin omitted)
 
 ### Community 0 - "IwaError"
 Cohesion: 0.05
@@ -110,28 +105,28 @@ Cohesion: 0.16
 Nodes (21): commands, ColumnMappingDto, CurrencyConversionDto, EntryDto, HabitDto, HabitMappingDto, HabitPresetDto, ImportPreviewDto (+13 more)
 
 ### Community 2 - "dto.rs"
-Cohesion: 0.07
-Nodes (49): DailyPoint, HabitBreakdownItem, HabitPreset, PeriodCompareResult, Option, CurrencyConversion, ImportSummary, derived_values_show_their_arithmetic() (+41 more)
+Cohesion: 0.05
+Nodes (62): DailyPoint, HabitBreakdownItem, HabitPreset, PeriodCompareResult, Option, CurrencyConversion, ImportSummary, derived_values_show_their_arithmetic() (+54 more)
 
 ### Community 3 - "charts/index.ts"
 Cohesion: 0.08
-Nodes (24): horizontalBarPath(), verticalBarPath(), formatCalendarDate(), formatDayTick, formatDuration(), formatHourTick, formatMillisecond, formatMinuteTick (+16 more)
+Nodes (25): horizontalBarPath(), verticalBarPath(), formatCalendarDate(), formatDayTick, formatDuration(), formatHourTick, formatMillisecond, formatMinuteTick (+17 more)
 
 ### Community 4 - "commands.rs"
-Cohesion: 0.10
-Nodes (58): AppHandle, CurrencyConversionDto, EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto, ProfileDto (+50 more)
+Cohesion: 0.14
+Nodes (49): AppHandle, CurrencyConversionDto, EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto, ProfileDto (+41 more)
 
 ### Community 5 - "HabitId"
-Cohesion: 0.06
-Nodes (71): compute_timeline(), compute_timeline_includes_entries_from_archived_habits(), compute_timeline_zero_fills_and_compares_against_previous_equal_length_period(), DailyPoint, HabitBreakdownItem, Date, RepoResult, Vec (+63 more)
+Cohesion: 0.07
+Nodes (66): compute_timeline(), compute_timeline_includes_entries_from_archived_habits(), compute_timeline_zero_fills_and_compares_against_previous_equal_length_period(), DailyPoint, HabitBreakdownItem, Date, RepoResult, Vec (+58 more)
 
 ### Community 6 - "grid/index.ts"
 Cohesion: 0.06
 Nodes (36): formatCell(), HabitLookup, pad(), parseCell(), parseDateCell(), parseNumberCell(), ParseResult, habits (+28 more)
 
 ### Community 7 - "Db"
-Cohesion: 0.05
-Nodes (60): Mutex, MutexGuard, EntryId, a_failure_mid_transaction_rolls_everything_back(), archived_habits_are_converted_too(), converts_habits_profile_and_currency_together(), costs(), Fixture (+52 more)
+Cohesion: 0.06
+Nodes (55): Mutex, MutexGuard, a_failure_mid_transaction_rolls_everything_back(), archived_habits_are_converted_too(), converts_habits_profile_and_currency_together(), costs(), Fixture, habit() (+47 more)
 
 ### Community 8 - "Apple Design"
 Cohesion: 0.10
@@ -146,8 +141,8 @@ Cohesion: 0.11
 Nodes (26): Agent, a_rate_error_changes_nothing(), applies_the_fetched_rate_to_habits_and_profile(), convert_currency(), FakeRates, fetch_rate(), malformed_codes_are_rejected_before_any_fetch(), network_errors_read_clearly() (+18 more)
 
 ### Community 12 - "mapping.rs"
-Cohesion: 0.21
-Nodes (21): apply_mapping(), cell_to_datetime(), column_habit_mapping_resolves_by_name(), HabitMapping, map_row(), MappedEntry, MappingResult, maps_a_well_formed_row_with_fixed_habit() (+13 more)
+Cohesion: 0.08
+Nodes (48): Box, apply_import(), column_habit_mapping_creates_habits_by_name(), detect_source(), ImportPreview, imports_a_csv_with_a_fixed_habit_and_remembers_the_mapping(), preview_import(), Option (+40 more)
 
 ### Community 13 - "cell_storage.rs"
 Cohesion: 0.19
@@ -157,9 +152,9 @@ Nodes (23): cell_kind(), CellKind, decode_cell(), DecodedCell, decodes_a_bool_ce
 Cohesion: 0.09
 Nodes (22): icons/128x128@2x.png, icons/128x128.png, icons/32x32.png, icons/icon.icns, icons/icon.ico, app, security, windows (+14 more)
 
-### Community 15 - "repository.rs"
-Cohesion: 0.06
-Nodes (53): Into, export_entries(), export_resolves_habit_names_and_counts_rows(), ExportFormat, Path, Result, day_range(), Date (+45 more)
+### Community 15 - "today_summary.rs"
+Cohesion: 0.08
+Nodes (40): day_range(), Date, PrimitiveDateTime, a_full_thirty_days_of_history_averages_over_thirty_days(), a_net_gain_projects_negative_months_lost(), a_short_history_is_averaged_over_the_days_since_the_first_entry(), a_single_first_entry_is_averaged_over_the_seven_day_floor(), an_empty_window_projects_zero_months() (+32 more)
 
 ### Community 16 - "stores/index.ts"
 Cohesion: 0.13
@@ -193,21 +188,21 @@ Nodes (11): core:default, dialog:allow-message, dialog:allow-open, dialog:allow-
 Cohesion: 0.33
 Nodes (5): description, license, name, type, version
 
-### Community 28 - "XlsxSource"
-Cohesion: 0.24
-Nodes (8): Data, cell_from_calamine(), AsRef, CellValue, Path, PathBuf, Self, XlsxSource
+### Community 28 - "repository.rs"
+Cohesion: 0.08
+Nodes (35): Into, export_entries(), export_resolves_habit_names_and_counts_rows(), ExportFormat, Path, Result, Entry, EntryId (+27 more)
 
 ### Community 39 - "navigation.ts"
 Cohesion: 0.29
 Nodes (6): CaretState, CellPosition, GridBounds, nextCell(), bounds, midCaret
 
 ### Community 40 - "settings_repository.rs"
-Cohesion: 0.11
-Nodes (27): Default, SettingsRepository, is_currency_code(), Option, Self, String, Settings, StartupRoute (+19 more)
+Cohesion: 0.12
+Nodes (26): Default, is_currency_code(), Option, Self, String, Settings, StartupRoute, WeekStart (+18 more)
 
-### Community 41 - ".sheets"
-Cohesion: 0.18
-Nodes (10): CsvSource, infer_cell(), AsRef, CellValue, Path, PathBuf, Result, Self (+2 more)
+### Community 41 - "ImportError"
+Cohesion: 0.08
+Nodes (26): Data, CsvSource, infer_cell(), AsRef, CellValue, Path, PathBuf, Result (+18 more)
 
 ### Community 45 - "models.ts"
 Cohesion: 0.16
@@ -217,37 +212,17 @@ Nodes (17): formatLocalDate(), formatLocalDateTime(), pad(), parseLocalDate(), p
 Cohesion: 0.12
 Nodes (14): addCustomHabit(), addHabitOpen, closeAddHabit(), handlePresetKeydown(), newHabitCost, newHabitLifeMinutes, newHabitName, newHabitUnit (+6 more)
 
-### Community 49 - "import_workbook.rs"
-Cohesion: 0.39
-Nodes (11): Box, apply_import(), column_habit_mapping_creates_habits_by_name(), detect_source(), imports_a_csv_with_a_fixed_habit_and_remembers_the_mapping(), preview_import(), Path, PathBuf (+3 more)
-
-### Community 50 - "ColumnMapping"
-Cohesion: 0.24
-Nodes (12): now(), repo(), Arc, Option, PrimitiveDateTime, RepoResult, Self, sample_mapping() (+4 more)
-
 ### Community 51 - "habit-presets.ts"
 Cohesion: 0.27
 Nodes (9): categoryLabel(), filterPresets(), formatPresetSource(), groupPresets(), PRESET_CATEGORIES, PresetGroup, presets, PresetCategory (+1 more)
-
-### Community 54 - "Sheet"
-Cohesion: 0.20
-Nodes (11): CellValue, ImportError, Error, Option, PrimitiveDateTime, String, Vec, Sheet (+3 more)
 
 ### Community 55 - "onDataChanged"
 Cohesion: 0.23
 Nodes (6): onDataChanged(), Entry, entryFromDto(), entryToDto(), TodaySummary, TodayStore
 
-### Community 56 - "ImportPreview"
-Cohesion: 0.40
-Nodes (5): ImportPreview, Option, String, Vec, ImportPreviewDto
-
 ### Community 57 - "HabitsStore"
 Cohesion: 0.29
 Nodes (4): Habit, habitFromDto(), habitToDto(), HabitsStore
-
-### Community 58 - "DbError"
-Cohesion: 0.53
-Nodes (11): DbError, fresh_database_reaches_current_version(), migrate_v1(), migrate_v2(), migrate_v3(), migrate_v4(), Connection, Result (+3 more)
 
 ## Knowledge Gaps
 - **137 isolated node(s):** `name`, `version`, `description`, `type`, `dev` (+132 more)
@@ -257,11 +232,11 @@ Nodes (11): DbError, fresh_database_reaches_current_version(), migrate_v1(), mig
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Db` connect `Db` to `commands.rs`, `settings_repository.rs`, `convert_currency.rs`, `repository.rs`, `ColumnMapping`?**
+- **Why does `Db` connect `Db` to `commands.rs`, `settings_repository.rs`, `convert_currency.rs`, `mapping.rs`, `today_summary.rs`, `repository.rs`?**
   _High betweenness centrality (0.286) - this node is a cross-community bridge._
-- **Why does `Sheet` connect `Sheet` to `IwaError`, `dto.rs`, `.sheets`, `mapping.rs`, `import_workbook.rs`, `ImportPreview`?**
+- **Why does `Sheet` connect `dto.rs` to `IwaError`, `ImportError`, `mapping.rs`?**
   _High betweenness centrality (0.154) - this node is a cross-community bridge._
-- **Why does `read_table()` connect `IwaError` to `cell_storage.rs`, `Sheet`?**
+- **Why does `read_table()` connect `IwaError` to `dto.rs`, `cell_storage.rs`?**
   _High betweenness centrality (0.105) - this node is a cross-community bridge._
 - **Are the 8 inferred relationships involving `HabitId` (e.g. with `habit()` and `money_spent_scales_with_quantity()`) actually correct?**
   _`HabitId` has 8 INFERRED edges - model-reasoned connections that need verification._
@@ -270,4 +245,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `IwaError` be split into smaller, more focused modules?**
   _Cohesion score 0.05329593267882188 - nodes in this community are weakly interconnected._
 - **Should `dto.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.06512890094979647 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05269497139415839 - nodes in this community are weakly interconnected._
