@@ -1,8 +1,10 @@
 pub mod cost_model;
 pub mod currency;
+pub mod email;
 pub mod entry;
 pub mod habit;
 pub mod levels;
+pub mod notifications;
 pub mod points;
 pub mod presets;
 pub mod profile;

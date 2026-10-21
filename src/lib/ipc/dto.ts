@@ -202,3 +202,59 @@ export interface ProgressDto {
   recentAwards: PointAwardDto[];
   milestones: MilestoneDto[];
 }
+
+// --- Email settings (N2) ---
+
+export type EmailProviderDto = "none" | "smtp" | "resend" | "postmark";
+export type SmtpSecurityDto = "starttls" | "tls";
+
+/** Never carries the password/API key: only whether one is in the keychain. */
+export interface EmailSettingsDto {
+  provider: EmailProviderDto;
+  fromAddress: string | null;
+  toAddress: string | null;
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpUsername: string | null;
+  smtpSecurity: SmtpSecurityDto;
+  /** Output only; ignored on save. */
+  hasSecret: boolean;
+}
+
+// --- Notifications (N1) ---
+
+export type NotificationCategoryId = "reminders" | "progress" | "weekly_summary" | "streak_pace";
+export type WeekdayDto =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
+
+export interface NotificationCategoryDto {
+  category: NotificationCategoryId;
+  enabled: boolean;
+  local: boolean;
+  email: boolean;
+}
+
+/** Times are "HH:MM"; quiet hours are off when either end is null. */
+export interface NotificationSettingsDto {
+  categories: NotificationCategoryDto[];
+  reminderTime: string;
+  weeklyDay: WeekdayDto;
+  weeklyTime: string;
+  streakAlertTime: string;
+  paceThreshold: number;
+  quietStart: string | null;
+  quietEnd: string | null;
+  bundleProgress: boolean;
+  launchAtLogin: boolean;
+  closeToTray: boolean;
+  /** Output only: an email provider is chosen. */
+  emailConfigured: boolean;
+  /** Output only: OS notification permission. */
+  permission: "granted" | "denied" | "prompt";
+}

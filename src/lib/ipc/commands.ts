@@ -2,11 +2,13 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   ColumnMappingDto,
   CurrencyConversionDto,
+  EmailSettingsDto,
   EntryDto,
   HabitDto,
   HabitPresetDto,
   ImportPreviewDto,
   ImportSummaryDto,
+  NotificationSettingsDto,
   ProfileDto,
   ProgressDto,
   SettingsDto,
@@ -52,4 +54,18 @@ export const commands = {
   applyImport: (path: string, sheetIndex: number, mapping: ColumnMappingDto) =>
     invoke<ImportSummaryDto>("apply_import", { path, sheetIndex, mapping }),
   exportEntries: (path: string, format: "xlsx" | "csv") => invoke<number>("export_entries", { path, format }),
+
+  getEmailSettings: () => invoke<EmailSettingsDto>("get_email_settings"),
+  /** `newSecret` goes straight to the OS keychain; omit it to keep the saved one. */
+  saveEmailSettings: (settings: EmailSettingsDto, newSecret?: string) =>
+    invoke<void>("save_email_settings", { settings, newSecret: newSecret ?? null }),
+  clearEmailSecret: () => invoke<void>("clear_email_secret"),
+  /** Rejects with a readable reason, e.g. "Authentication failed — check the app password". */
+  sendTestEmail: () => invoke<void>("send_test_email"),
+
+  getNotificationSettings: () => invoke<NotificationSettingsDto>("get_notification_settings"),
+  /** Also toggles launch-at-login and asks for notification permission; returns the saved state. */
+  saveNotificationSettings: (settings: NotificationSettingsDto) =>
+    invoke<NotificationSettingsDto>("save_notification_settings", { settings }),
+  sendTestNotification: () => invoke<void>("send_test_notification"),
 };

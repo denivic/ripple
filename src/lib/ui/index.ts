@@ -1,4 +1,5 @@
 export { default as Button } from "./Button.svelte";
+export { default as EmailSettings } from "./EmailSettings.svelte";
 export { default as Field } from "./Field.svelte";
 export { default as Sheet } from "./Sheet.svelte";
 export { default as Sidebar } from "./Sidebar.svelte";

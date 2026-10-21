@@ -3,12 +3,17 @@ export { formatLocalDate, formatLocalDateTime, parseLocalDate, parseLocalDateTim
 export type {
   ColumnMappingDto,
   CurrencyConversionDto,
+  EmailProviderDto,
+  EmailSettingsDto,
   EntryDto,
   HabitDto,
   HabitMappingDto,
   ImportPreviewDto,
   ImportSummaryDto,
   MilestoneDto,
+  NotificationCategoryDto,
+  NotificationCategoryId,
+  NotificationSettingsDto,
   PointAwardDto,
   PointAwardKind,
   PresetCategory,
@@ -18,7 +23,9 @@ export type {
   RowErrorDto,
   SettingsDto,
   SheetPreviewDto,
+  SmtpSecurityDto,
   StartupRouteDto,
+  WeekdayDto,
 } from "./dto";
 export { onDataChanged, type DataChangedEvent, type DataChangedScope } from "./events";
 export {

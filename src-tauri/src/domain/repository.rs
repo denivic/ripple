@@ -3,6 +3,7 @@ use time::PrimitiveDateTime;
 
 use super::entry::{Entry, EntryId};
 use super::habit::{Habit, HabitId};
+use super::notifications::{NotificationPrefs, NotificationSchedule};
 use super::points::{AwardKind, PointAward};
 use super::profile::Profile;
 use super::settings::Settings;
@@ -67,4 +68,20 @@ pub trait PointAwardRepository {
     /// Most recently recorded first.
     fn recent(&self, limit: usize) -> RepoResult<Vec<PointAward>>;
     fn list_by_kind(&self, kind: AwardKind) -> RepoResult<Vec<PointAward>>;
+}
+
+/// Notification preferences: the per-category switches and the single-row
+/// schedule. Missing rows read as the defaults, like `SettingsRepository`.
+pub trait NotificationSettingsRepository {
+    fn get_prefs(&self) -> RepoResult<NotificationPrefs>;
+    fn save_prefs(&self, prefs: &NotificationPrefs) -> RepoResult<()>;
+    fn get_schedule(&self) -> RepoResult<NotificationSchedule>;
+    fn save_schedule(&self, schedule: &NotificationSchedule) -> RepoResult<()>;
+}
+
+/// Dedup ledger for sent notifications. A key is recorded only after a
+/// successful send, so a failed send is retried rather than lost.
+pub trait NotificationLogRepository {
+    fn is_sent(&self, key: &str) -> RepoResult<bool>;
+    fn mark_sent(&self, key: &str) -> RepoResult<()>;
 }

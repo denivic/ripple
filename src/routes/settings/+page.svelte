@@ -5,7 +5,16 @@
   import Button from "$lib/ui/Button.svelte";
   import Field from "$lib/ui/Field.svelte";
   import Sheet from "$lib/ui/Sheet.svelte";
-  import { commands, formatLocalDate, type SettingsDto } from "$lib/ipc";
+  import Toggle from "$lib/ui/Toggle.svelte";
+  import EmailSettings from "$lib/ui/EmailSettings.svelte";
+  import {
+    commands,
+    formatLocalDate,
+    type NotificationCategoryDto,
+    type NotificationCategoryId,
+    type NotificationSettingsDto,
+    type SettingsDto,
+  } from "$lib/ipc";
   import { settingsStore } from "$lib/stores";
   import { builtInThemes, contrastRatio, meetsAA, themeStore, validateTheme, type Theme } from "$lib/theme";
 
@@ -24,6 +33,7 @@
         // rejects (DataCloneError) — snapshot it instead.
         draft = $state.snapshot(themeStore.current);
         dataDir = await commands.getDataDir();
+        notifications = await commands.getNotificationSettings();
       } catch (e) {
         loadError = `Couldn't load settings: ${String(e)}`;
       } finally {
@@ -260,6 +270,75 @@
       resetting = false;
     }
   }
+  // --- Notifications ---------------------------------------------------------
+  // Every control saves straight away; the backend returns the saved state
+  // (with fresh permission / email status), which replaces the local copy.
+
+  let notifications = $state<NotificationSettingsDto | null>(null);
+  let notificationError = $state<string | null>(null);
+  let testingNotification = $state(false);
+
+  const categoryInfo: Record<NotificationCategoryId, { title: string; hint: string }> = {
+    reminders: { title: "Daily reminder", hint: "A nudge to log, skipped once anything is logged that day." },
+    progress: { title: "Progress", hint: "Level-ups, milestones and points earned." },
+    weekly_summary: { title: "Weekly summary", hint: "This week against last, points, streak and most improved habit." },
+    streak_pace: { title: "Streak and pace alerts", hint: "Protect a clean streak; warn when a habit runs above its usual pace." },
+  };
+
+  const weekdayOptions = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((d) => ({
+    value: d,
+    label: d[0].toUpperCase() + d.slice(1),
+  }));
+
+  async function saveNotifications(patch: Partial<NotificationSettingsDto>): Promise<void> {
+    if (!notifications) return;
+    const next = { ...$state.snapshot(notifications), ...patch };
+    notifications = next;
+    try {
+      notifications = await commands.saveNotificationSettings(next);
+      notificationError = null;
+    } catch (e) {
+      notificationError = `Couldn't save notification settings: ${String(e)}`;
+      // Reload so the controls show what is actually stored.
+      notifications = await commands.getNotificationSettings().catch(() => notifications);
+    }
+  }
+
+  function saveCategory(id: NotificationCategoryId, patch: Partial<NotificationCategoryDto>): void {
+    if (!notifications) return;
+    const categories = notifications.categories.map((c) => (c.category === id ? { ...c, ...patch } : { ...c }));
+    void saveNotifications({ categories });
+  }
+
+  function setQuietHours(on: boolean): void {
+    void saveNotifications(on ? { quietStart: "22:00", quietEnd: "07:00" } : { quietStart: null, quietEnd: null });
+  }
+
+  // `<input type="time">` reports "" while half-typed; only save complete values.
+  function saveTime(field: "reminderTime" | "weeklyTime" | "streakAlertTime" | "quietStart" | "quietEnd", v: string): void {
+    if (/^\d{2}:\d{2}$/.test(v)) void saveNotifications({ [field]: v });
+  }
+
+  async function refreshEmailStatus(): Promise<void> {
+    try {
+      const fresh = await commands.getNotificationSettings();
+      if (notifications) notifications.emailConfigured = fresh.emailConfigured;
+    } catch {
+      // Status refresh only; the next save reports real errors.
+    }
+  }
+
+  async function sendTestNotification(): Promise<void> {
+    testingNotification = true;
+    try {
+      await commands.sendTestNotification();
+      announce("Test notification sent.");
+    } catch (e) {
+      notificationError = `Test notification failed: ${String(e)}`;
+    } finally {
+      testingNotification = false;
+    }
+  }
 </script>
 
 <Toolbar title="Settings" />
@@ -392,6 +471,148 @@
         <Button variant="secondary" onclick={restoreBackup}>Restore from backup…</Button>
       </div>
     </section>
+
+    {#if notifications}
+      <section class="card">
+        <h2>Notifications</h2>
+        {#if notificationError}
+          <p class="warning">{notificationError}</p>
+        {/if}
+        {#if notifications.permission === "denied"}
+          <p class="warning">
+            Notifications are blocked for Ripple. Allow them in your system settings
+            (macOS: System Settings → Notifications → Ripple; Windows: Settings → System → Notifications).
+          </p>
+        {/if}
+
+        <div class="notify-categories">
+          {#each notifications.categories as cat (cat.category)}
+            <div class="notify-row">
+              <div class="notify-title">
+                <Toggle
+                  checked={cat.enabled}
+                  label={categoryInfo[cat.category].title}
+                  onchange={(on) => saveCategory(cat.category, { enabled: on })}
+                />
+                <span class="notify-hint">{categoryInfo[cat.category].hint}</span>
+              </div>
+              <div class="notify-channels">
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    checked={cat.local}
+                    disabled={!cat.enabled}
+                    onchange={(e) => saveCategory(cat.category, { local: e.currentTarget.checked })}
+                  />
+                  Local
+                </label>
+                <label class="check" title={notifications.emailConfigured ? undefined : "Set up email below first"}>
+                  <input
+                    type="checkbox"
+                    checked={cat.email && notifications.emailConfigured}
+                    disabled={!cat.enabled || !notifications.emailConfigured}
+                    onchange={(e) => saveCategory(cat.category, { email: e.currentTarget.checked })}
+                  />
+                  Email
+                </label>
+              </div>
+            </div>
+          {/each}
+          {#if !notifications.emailConfigured}
+            <p class="notify-hint">Email is off until an email provider is set up below.</p>
+          {/if}
+        </div>
+
+        <h3>Schedule</h3>
+        <div class="form">
+          <Field
+            type="time"
+            label="Daily reminder"
+            value={notifications.reminderTime}
+            oninput={(v) => saveTime("reminderTime", v)}
+          />
+          <Field
+            type="select"
+            label="Weekly summary day"
+            value={notifications.weeklyDay}
+            options={weekdayOptions}
+            oninput={(v) => void saveNotifications({ weeklyDay: v as NotificationSettingsDto["weeklyDay"] })}
+          />
+          <Field
+            type="time"
+            label="Weekly summary time"
+            value={notifications.weeklyTime}
+            oninput={(v) => saveTime("weeklyTime", v)}
+          />
+          <Field
+            type="time"
+            label="Streak alert"
+            value={notifications.streakAlertTime}
+            oninput={(v) => saveTime("streakAlertTime", v)}
+            hint="Sent when you're on a clean streak of 2+ days and today is still clean."
+          />
+          <Field
+            type="number"
+            label="Pace alert threshold"
+            value={notifications.paceThreshold}
+            oninput={(v) => {
+              const n = Number(v);
+              if (Number.isFinite(n) && n > 0) void saveNotifications({ paceThreshold: n });
+            }}
+            hint="Alert when a harmful habit today exceeds this × its 28-day daily average."
+          />
+        </div>
+
+        <h3>Quiet hours</h3>
+        <div class="form">
+          <Toggle
+            checked={notifications.quietStart !== null && notifications.quietEnd !== null}
+            label="Hold notifications during quiet hours"
+            onchange={setQuietHours}
+          />
+          {#if notifications.quietStart !== null && notifications.quietEnd !== null}
+            <Field type="time" label="From" value={notifications.quietStart} oninput={(v) => saveTime("quietStart", v)} />
+            <Field
+              type="time"
+              label="Until"
+              value={notifications.quietEnd}
+              oninput={(v) => saveTime("quietEnd", v)}
+              hint="Anything due in this window is delivered when it ends, not dropped."
+            />
+          {/if}
+        </div>
+
+        <h3>Behaviour</h3>
+        <div class="form">
+          <Toggle
+            checked={notifications.bundleProgress}
+            label="Bundle progress into one notification"
+            onchange={(on) => void saveNotifications({ bundleProgress: on })}
+          />
+          <Toggle
+            checked={notifications.launchAtLogin}
+            label="Launch Ripple at login"
+            onchange={(on) => void saveNotifications({ launchAtLogin: on })}
+          />
+          <Toggle
+            checked={notifications.closeToTray}
+            label="Keep running in the tray when the window is closed"
+            onchange={(on) => void saveNotifications({ closeToTray: on })}
+          />
+        </div>
+
+        <div class="actions">
+          <Button variant="secondary" disabled={testingNotification} onclick={sendTestNotification}>
+            {testingNotification ? "Sending…" : "Send test notification"}
+          </Button>
+        </div>
+
+        <h3>Email</h3>
+        <div class="email-settings" onfocusout={refreshEmailStatus}>
+          <EmailSettings />
+        </div>
+      </section>
+    {/if}
 
     <section class="card danger-zone">
       <h2>Danger zone</h2>
@@ -632,5 +853,41 @@
     color: var(--text-primary);
     font-family: ui-monospace, monospace;
     user-select: all;
+  }
+  .notify-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .notify-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .notify-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .notify-hint {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+  }
+  .notify-channels {
+    display: flex;
+    gap: 1rem;
+  }
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+  .email-settings {
+    margin-top: 0.5rem;
   }
 </style>

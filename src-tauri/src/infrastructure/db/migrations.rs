@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use super::error::DbError;
 
-const CURRENT_VERSION: i32 = 6;
+const CURRENT_VERSION: i32 = 7;
 
 /// Versioned via `PRAGMA user_version` rather than a migrations table — the
 /// whole schema lives in this file for now, so there's nothing a table would
@@ -26,6 +26,9 @@ pub fn run(conn: &Connection) -> Result<(), DbError> {
     }
     if version < 6 {
         migrate_v6(conn)?;
+    }
+    if version < 7 {
+        migrate_v7(conn)?;
     }
     conn.pragma_update(None, "user_version", CURRENT_VERSION)?;
     Ok(())
@@ -148,6 +151,58 @@ fn migrate_v6(conn: &Connection) -> Result<(), DbError> {
     Ok(())
 }
 
+fn migrate_v7(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "
+        -- Per-category notification switches. Categories are stable ids
+        -- (reminders|progress|weekly_summary|streak_pace); a missing row
+        -- reads as the defaults below, so a fresh install needs no seeding.
+        CREATE TABLE notification_prefs (
+            category TEXT PRIMARY KEY,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            channel_local INTEGER NOT NULL DEFAULT 1,
+            channel_email INTEGER NOT NULL DEFAULT 0
+        );
+
+        -- Single-row, like `settings`. Times are local \"HH:MM\"; quiet
+        -- hours are off when either end is NULL.
+        CREATE TABLE notification_schedule (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            reminder_time TEXT NOT NULL DEFAULT '20:00',
+            weekly_day TEXT NOT NULL DEFAULT 'sunday',
+            weekly_time TEXT NOT NULL DEFAULT '18:00',
+            streak_alert_time TEXT NOT NULL DEFAULT '21:00',
+            pace_threshold REAL NOT NULL DEFAULT 1.5,
+            quiet_start TEXT,
+            quiet_end TEXT,
+            bundle_progress INTEGER NOT NULL DEFAULT 1,
+            launch_at_login INTEGER NOT NULL DEFAULT 0,
+            close_to_tray INTEGER NOT NULL DEFAULT 1
+        );
+
+        -- Dedup ledger: a notification is sent only if its key is absent,
+        -- and the key is written after a successful send.
+        CREATE TABLE notification_log (
+            key TEXT PRIMARY KEY,
+            sent_at TEXT NOT NULL
+        );
+
+        -- Single-row. Secrets never live here — only in the OS keychain.
+        CREATE TABLE email_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            provider TEXT NOT NULL DEFAULT 'none',
+            from_address TEXT,
+            to_address TEXT,
+            smtp_host TEXT,
+            smtp_port INTEGER,
+            smtp_username TEXT,
+            smtp_security TEXT NOT NULL DEFAULT 'starttls'
+        );
+        ",
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,7 +291,7 @@ mod tests {
 
         run(&conn).unwrap();
 
-        assert_eq!(user_version(&conn), 6);
+        assert_eq!(user_version(&conn), CURRENT_VERSION);
         let habits: i64 = conn
             .query_row("SELECT COUNT(*) FROM habits", [], |row| row.get(0))
             .unwrap();
@@ -251,5 +306,63 @@ mod tests {
              VALUES ('clean:2026-10-20', 'clean', 10, '2026-10-20', '2026-10-21T08:00:00')";
         assert_eq!(conn.execute(insert, []).unwrap(), 1);
         assert_eq!(conn.execute(insert, []).unwrap(), 0);
+    }
+
+    #[test]
+    fn v7_adds_empty_notification_tables_keeping_existing_data() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+        conn.pragma_update(None, "user_version", 6).unwrap();
+        conn.execute(
+            "INSERT INTO habits (name, unit_label) VALUES ('Coffee', 'cup')",
+            [],
+        )
+        .unwrap();
+
+        run(&conn).unwrap();
+
+        assert_eq!(user_version(&conn), 7);
+        let habits: i64 = conn
+            .query_row("SELECT COUNT(*) FROM habits", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(habits, 1);
+        for table in [
+            "notification_prefs",
+            "notification_schedule",
+            "notification_log",
+            "email_settings",
+        ] {
+            let n: i64 = conn
+                .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| row.get(0))
+                .unwrap();
+            assert_eq!(n, 0, "{table} should start empty");
+        }
+
+        // Column defaults match the spec'd defaults.
+        conn.execute("INSERT INTO notification_schedule (id) VALUES (1)", [])
+            .unwrap();
+        let (reminder, day, threshold, quiet): (String, String, f64, Option<String>) = conn
+            .query_row(
+                "SELECT reminder_time, weekly_day, pace_threshold, quiet_start
+                 FROM notification_schedule WHERE id = 1",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(reminder, "20:00");
+        assert_eq!(day, "sunday");
+        assert_eq!(threshold, 1.5);
+        assert_eq!(quiet, None);
+        conn.execute("INSERT INTO email_settings (id) VALUES (1)", [])
+            .unwrap();
+        let provider: String = conn
+            .query_row("SELECT provider FROM email_settings", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(provider, "none");
     }
 }

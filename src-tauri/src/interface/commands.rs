@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::application::export_workbook::ExportFormat;
 use crate::application::{
-    award_points, compute_series, convert_currency as currency_conversion, export_workbook,
+    compute_series, convert_currency as currency_conversion, export_workbook,
     import_workbook, today_summary,
 };
 use crate::domain::presets::habit_presets;
@@ -27,6 +27,23 @@ use super::dto::{
 };
 use super::state::AppState;
 
+// Notifications (N1)
+use super::dto::NotificationSettingsDto;
+use super::scheduler::permission_label;
+use crate::application::notifications;
+use crate::domain::email::{EmailProvider, EmailSettingsRepository};
+use crate::domain::repository::NotificationSettingsRepository;
+use crate::infrastructure::db::SqliteNotificationRepository;
+use tauri_plugin_autostart::ManagerExt as _;
+use tauri_plugin_notification::NotificationExt as _;
+
+// Email settings (N2)
+use super::dto::EmailSettingsDto;
+use crate::application::email;
+use crate::infrastructure::db::SqliteEmailSettingsRepository;
+use crate::infrastructure::email::keychain::KeychainSecretStore;
+use crate::infrastructure::email::ProviderTransports;
+
 const DATA_CHANGED_EVENT: &str = "ripple://data-changed";
 
 #[derive(Debug, Clone, Serialize)]
@@ -40,7 +57,7 @@ struct DataChangedEvent {
 /// else needs to refresh. Emission failure is a wiring bug, not something a
 /// command's caller can act on, so it's logged rather than surfaced as a
 /// command error.
-fn notify_changed(app: &AppHandle, scope: &'static str) {
+pub(crate) fn notify_changed<R: tauri::Runtime>(app: &AppHandle<R>, scope: &'static str) {
     if let Err(e) = app.emit(DATA_CHANGED_EVENT, DataChangedEvent { scope }) {
         eprintln!("failed to emit {DATA_CHANGED_EVENT}: {e}");
     }
@@ -280,6 +297,12 @@ pub fn restore_database(
 #[tauri::command]
 pub fn reset_database(app: AppHandle, state: State<AppState>) -> Result<(), String> {
     state.db.reset().map_err(|e| e.to_string())?;
+    // Email secrets live in the OS keychain, outside the database. Absent
+    // ones are skipped; any other keychain failure is logged rather than
+    // failing a reset that has already happened.
+    if let Err(e) = email::delete_all_secrets(&KeychainSecretStore::new()) {
+        eprintln!("reset: couldn't remove email secrets from the keychain: {e}");
+    }
     notify_changed(&app, "habits");
     notify_changed(&app, "entries");
     notify_changed(&app, "profile");
@@ -341,12 +364,20 @@ pub fn get_progress(
     let settings_repo = SqliteSettingsRepository::new(Arc::clone(&state.db));
     let award_repo = SqlitePointAwardRepository::new(Arc::clone(&state.db));
     let today = parse_date(&today).map_err(|e| e.to_string())?;
-    let progress =
-        award_points::get_progress(&habit_repo, &entry_repo, &settings_repo, &award_repo, today)
-            .map_err(|e| e.to_string())?;
+    let (progress, new_awards) = notifications::get_progress_with_new_awards(
+        &habit_repo,
+        &entry_repo,
+        &settings_repo,
+        &award_repo,
+        today,
+    )
+    .map_err(|e| e.to_string())?;
     if progress.newly_awarded > 0 {
         notify_changed(&app, "points");
     }
+    // Progress notifications go out from the scheduler thread, through the
+    // same dedup and quiet-hours path as everything else.
+    state.notifications.enqueue_awards(new_awards);
     Ok(progress.into())
 }
 
@@ -409,4 +440,143 @@ pub fn export_entries(
         &entry_repo,
     )
     .map_err(|e| e.to_string())
+}
+
+// --- Email settings (N2) ---------------------------------------------------
+
+#[tauri::command]
+pub fn get_email_settings(state: State<AppState>) -> Result<EmailSettingsDto, String> {
+    email::get_settings(
+        &SqliteEmailSettingsRepository::new(Arc::clone(&state.db)),
+        &KeychainSecretStore::new(),
+    )
+    .map(Into::into)
+}
+
+/// `new_secret` goes straight to the keychain; omitted or blank keeps the
+/// saved one.
+#[tauri::command]
+pub fn save_email_settings(
+    state: State<AppState>,
+    settings: EmailSettingsDto,
+    new_secret: Option<String>,
+) -> Result<(), String> {
+    let domain_settings: crate::domain::email::EmailSettings = settings.try_into()?;
+    email::save_settings(
+        &SqliteEmailSettingsRepository::new(Arc::clone(&state.db)),
+        &KeychainSecretStore::new(),
+        &domain_settings,
+        new_secret.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn clear_email_secret(state: State<AppState>) -> Result<(), String> {
+    email::clear_secret(
+        &SqliteEmailSettingsRepository::new(Arc::clone(&state.db)),
+        &KeychainSecretStore::new(),
+    )
+}
+
+/// Sends a test email with the saved settings. Async + spawn_blocking so
+/// the SMTP/HTTPS round trip (up to 15 s) never stalls the main thread.
+#[tauri::command]
+pub async fn send_test_email(state: State<'_, AppState>) -> Result<(), String> {
+    let db = Arc::clone(&state.db);
+    tauri::async_runtime::spawn_blocking(move || {
+        email::send_test(
+            &SqliteEmailSettingsRepository::new(db),
+            &KeychainSecretStore::new(),
+            &ProviderTransports,
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// --- Notifications (N1) ----------------------------------------------------
+
+fn notification_settings_dto(
+    app: &AppHandle,
+    db: &Arc<crate::infrastructure::db::Db>,
+) -> Result<NotificationSettingsDto, String> {
+    let repo = SqliteNotificationRepository::new(Arc::clone(db));
+    let prefs = repo.get_prefs().map_err(|e| e.to_string())?;
+    let schedule = repo.get_schedule().map_err(|e| e.to_string())?;
+    // Configured = a provider is chosen; whether its secret works is what
+    // the email card's own test button is for.
+    let email_configured = SqliteEmailSettingsRepository::new(Arc::clone(db))
+        .get()
+        .map(|s| s.provider != EmailProvider::None)
+        .unwrap_or(false);
+    let permission = app
+        .notification()
+        .permission_state()
+        .map(permission_label)
+        .unwrap_or("prompt");
+    Ok(NotificationSettingsDto::from_domain(
+        &prefs,
+        &schedule,
+        email_configured,
+        permission,
+    ))
+}
+
+#[tauri::command]
+pub fn get_notification_settings(
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<NotificationSettingsDto, String> {
+    notification_settings_dto(&app, &state.db)
+}
+
+/// Persists the notification settings and applies their side effects:
+/// launch-at-login is registered with the OS (before saving, so a refusal
+/// leaves the stored value matching reality), and enabling any local
+/// channel asks for notification permission if it hasn't been granted.
+/// Returns the saved settings with fresh status fields.
+#[tauri::command]
+pub fn save_notification_settings(
+    app: AppHandle,
+    state: State<AppState>,
+    settings: NotificationSettingsDto,
+) -> Result<NotificationSettingsDto, String> {
+    let (prefs, schedule) = settings.to_domain()?;
+    let repo = SqliteNotificationRepository::new(Arc::clone(&state.db));
+    let previous = repo.get_schedule().map_err(|e| e.to_string())?;
+    if previous.launch_at_login != schedule.launch_at_login {
+        let autolaunch = app.autolaunch();
+        let result = if schedule.launch_at_login {
+            autolaunch.enable()
+        } else {
+            autolaunch.disable()
+        };
+        result.map_err(|e| format!("couldn't change launch at login: {e}"))?;
+    }
+    repo.save_prefs(&prefs).map_err(|e| e.to_string())?;
+    repo.save_schedule(&schedule).map_err(|e| e.to_string())?;
+    if prefs.any_local() {
+        let notification = app.notification();
+        if !matches!(
+            notification.permission_state(),
+            Ok(tauri::plugin::PermissionState::Granted)
+        ) {
+            if let Err(e) = notification.request_permission() {
+                eprintln!("notification permission request failed: {e}");
+            }
+        }
+    }
+    // Re-evaluate straight away with the new schedule.
+    state.notifications.wake();
+    notification_settings_dto(&app, &state.db)
+}
+
+#[tauri::command]
+pub fn send_test_notification(app: AppHandle) -> Result<(), String> {
+    app.notification()
+        .builder()
+        .title("Ripple")
+        .body("Notifications are working.")
+        .show()
+        .map_err(|e| e.to_string())
 }

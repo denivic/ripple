@@ -1,8 +1,10 @@
 pub mod award_points;
 pub mod compute_series;
 pub mod convert_currency;
+pub mod email;
 pub mod export_workbook;
 pub mod import_workbook;
+pub mod notifications;
 pub mod today_summary;
 
 use time::{Date, PrimitiveDateTime, Time};

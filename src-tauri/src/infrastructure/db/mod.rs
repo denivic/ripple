@@ -1,10 +1,12 @@
 pub(crate) mod codec;
 mod currency_repository;
+mod email_settings_repository;
 mod entry_repository;
 mod error;
 mod habit_repository;
 mod mapping_repository;
 mod migrations;
+mod notification_repository;
 mod point_award_repository;
 mod profile_repository;
 mod settings_repository;
@@ -15,10 +17,12 @@ use std::sync::{Mutex, MutexGuard};
 use rusqlite::Connection;
 
 pub use currency_repository::SqliteCurrencyConversionRepository;
+pub use email_settings_repository::SqliteEmailSettingsRepository;
 pub use entry_repository::SqliteEntryRepository;
 pub use error::DbError;
 pub use habit_repository::SqliteHabitRepository;
 pub use mapping_repository::SqliteMappingRepository;
+pub use notification_repository::SqliteNotificationRepository;
 pub use point_award_repository::SqlitePointAwardRepository;
 pub use profile_repository::SqliteProfileRepository;
 pub use settings_repository::SqliteSettingsRepository;
@@ -85,7 +89,7 @@ impl Db {
     }
 
     /// Erases every habit, entry, profile field, setting, saved import
-    /// mapping and point award, keeping the schema. One transaction, so a failure leaves the
+    /// mapping, point award and notification/email preference, keeping the schema. One transaction, so a failure leaves the
     /// data untouched; clearing `sqlite_sequence` restarts ids from 1.
     pub fn reset(&self) -> RepoResult<()> {
         let mut guard = self.lock()?;
@@ -98,6 +102,10 @@ impl Db {
             DELETE FROM settings;
             DELETE FROM import_mappings;
             DELETE FROM point_awards;
+            DELETE FROM notification_prefs;
+            DELETE FROM notification_schedule;
+            DELETE FROM notification_log;
+            DELETE FROM email_settings;
             DELETE FROM sqlite_sequence;
             ",
         )?;
@@ -207,5 +215,42 @@ mod tests {
             .insert(&Habit::new("Tea".to_string(), "cup".to_string()))
             .unwrap();
         assert_eq!(id.0, 1);
+    }
+
+    #[test]
+    fn reset_clears_notification_tables() {
+        use crate::domain::notifications::{NotificationPrefs, NotificationSchedule};
+        use crate::domain::repository::{
+            NotificationLogRepository, NotificationSettingsRepository,
+        };
+        use std::sync::Arc;
+
+        let db = Arc::new(Db::open_in_memory().unwrap());
+        let repo = SqliteNotificationRepository::new(Arc::clone(&db));
+        let mut prefs = NotificationPrefs::default();
+        prefs.reminders.enabled = false;
+        repo.save_prefs(&prefs).unwrap();
+        repo.save_schedule(&NotificationSchedule {
+            close_to_tray: false,
+            ..Default::default()
+        })
+        .unwrap();
+        repo.mark_sent("reminders:2026-10-21:local").unwrap();
+        db.lock()
+            .unwrap()
+            .execute("INSERT INTO email_settings (id, provider) VALUES (1, 'smtp')", [])
+            .unwrap();
+
+        db.reset().unwrap();
+
+        assert_eq!(repo.get_prefs().unwrap(), NotificationPrefs::default());
+        assert_eq!(repo.get_schedule().unwrap(), NotificationSchedule::default());
+        assert!(!repo.is_sent("reminders:2026-10-21:local").unwrap());
+        let email_rows: i64 = db
+            .lock()
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM email_settings", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(email_rows, 0);
     }
 }

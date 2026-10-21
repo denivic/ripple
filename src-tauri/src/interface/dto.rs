@@ -7,6 +7,10 @@ use crate::application::compute_series::{
 use crate::application::convert_currency::CurrencyConversion;
 use crate::application::import_workbook::{ImportPreview, ImportSummary};
 use crate::application::today_summary::{HabitWeekTrend, TodaySummary};
+use crate::domain::notifications::{
+    format_clock, parse_clock, weekday_from_str, weekday_to_str, Category as NotificationCategory,
+    CategoryPrefs, NotificationPrefs, NotificationSchedule, QuietHours,
+};
 use crate::domain::points::{AwardKind, PointAward};
 use crate::domain::presets::{HabitPreset, PresetCategory, PresetConfidence};
 use crate::domain::{
@@ -589,6 +593,274 @@ impl From<Progress> for ProgressDto {
     }
 }
 
+// --- Email settings (N2) ---------------------------------------------------
+
+/// The email section of Settings. Deliberately has no secret field in
+/// either direction: the frontend learns only `has_secret`, and a new secret
+/// travels as its own `save_email_settings` argument straight to the keychain.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmailSettingsDto {
+    pub provider: String,
+    pub from_address: Option<String>,
+    pub to_address: Option<String>,
+    pub smtp_host: Option<String>,
+    /// Wider than u16 so an out-of-range port is a validation message
+    /// rather than a deserialisation error.
+    pub smtp_port: Option<i64>,
+    pub smtp_username: Option<String>,
+    pub smtp_security: String,
+    /// Output only; ignored on save.
+    #[serde(default)]
+    pub has_secret: bool,
+}
+
+impl From<crate::application::email::EmailSettingsView> for EmailSettingsDto {
+    fn from(view: crate::application::email::EmailSettingsView) -> Self {
+        let s = view.settings;
+        Self {
+            provider: s.provider.as_str().to_string(),
+            from_address: s.from_address,
+            to_address: s.to_address,
+            smtp_host: s.smtp_host,
+            smtp_port: s.smtp_port.map(i64::from),
+            smtp_username: s.smtp_username,
+            smtp_security: s.smtp_security.as_str().to_string(),
+            has_secret: view.has_secret,
+        }
+    }
+}
+
+impl TryFrom<EmailSettingsDto> for crate::domain::email::EmailSettings {
+    type Error = String;
+
+    fn try_from(d: EmailSettingsDto) -> Result<Self, Self::Error> {
+        use crate::domain::email::{EmailProvider, SmtpSecurity};
+        // Blank form fields arrive as "" — store them as absent.
+        let clean = |v: Option<String>| {
+            v.map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+        };
+        let provider = EmailProvider::parse(&d.provider)
+            .ok_or_else(|| format!("unknown email provider '{}'", d.provider))?;
+        let smtp_security = SmtpSecurity::parse(&d.smtp_security)
+            .ok_or_else(|| format!("unknown SMTP security '{}'", d.smtp_security))?;
+        let smtp_port = match d.smtp_port {
+            None => None,
+            Some(p) => Some(
+                u16::try_from(p)
+                    .ok()
+                    .filter(|p| *p > 0)
+                    .ok_or("SMTP port must be between 1 and 65535")?,
+            ),
+        };
+        Ok(Self {
+            provider,
+            from_address: clean(d.from_address),
+            to_address: clean(d.to_address),
+            smtp_host: clean(d.smtp_host),
+            smtp_port,
+            smtp_username: clean(d.smtp_username),
+            smtp_security,
+        })
+    }
+}
+
+#[cfg(test)]
+mod email_dto_tests {
+    use super::*;
+    use crate::application::email::{get_settings, save_settings};
+    use crate::domain::email::{EmailSettings, EmailSettingsRepository, SecretStore};
+    use crate::domain::repository::RepoResult;
+    use crate::infrastructure::email::keychain::MemorySecretStore;
+
+    struct OneRow(std::sync::Mutex<EmailSettings>);
+
+    impl EmailSettingsRepository for OneRow {
+        fn get(&self) -> RepoResult<EmailSettings> {
+            Ok(self.0.lock().unwrap().clone())
+        }
+        fn save(&self, s: &EmailSettings) -> RepoResult<()> {
+            *self.0.lock().unwrap() = s.clone();
+            Ok(())
+        }
+    }
+
+    fn dto() -> EmailSettingsDto {
+        EmailSettingsDto {
+            provider: "smtp".to_string(),
+            from_address: Some(" me@example.com ".to_string()),
+            to_address: Some("me@example.com".to_string()),
+            smtp_host: Some("smtp.example.com".to_string()),
+            smtp_port: Some(465),
+            smtp_username: Some("".to_string()),
+            smtp_security: "tls".to_string(),
+            has_secret: true,
+        }
+    }
+
+    #[test]
+    fn secret_never_appears_in_the_serialized_dto() {
+        let repo = OneRow(std::sync::Mutex::new(EmailSettings::default()));
+        let secrets = MemorySecretStore::default();
+        let settings = EmailSettings {
+            smtp_username: Some("me".to_string()),
+            ..EmailSettings::try_from(dto()).unwrap()
+        };
+        save_settings(&repo, &secrets, &settings, Some("sup3r-secret-pw")).unwrap();
+        assert_eq!(
+            secrets.get("smtp-password").unwrap().as_deref(),
+            Some("sup3r-secret-pw")
+        );
+        let json = serde_json::to_string(&EmailSettingsDto::from(
+            get_settings(&repo, &secrets).unwrap(),
+        ))
+        .unwrap();
+        assert!(!json.contains("sup3r-secret-pw"));
+        assert!(json.contains("\"hasSecret\":true"));
+        assert!(json.contains("\"smtpSecurity\":\"tls\""));
+    }
+
+    #[test]
+    fn blank_fields_become_absent_and_bad_values_are_rejected() {
+        let s = EmailSettings::try_from(dto()).unwrap();
+        assert_eq!(s.from_address.as_deref(), Some("me@example.com"));
+        assert_eq!(s.smtp_username, None);
+        for port in [0, -1, 70000] {
+            let err = EmailSettings::try_from(EmailSettingsDto { smtp_port: Some(port), ..dto() });
+            assert_eq!(err.unwrap_err(), "SMTP port must be between 1 and 65535");
+        }
+        assert!(EmailSettings::try_from(EmailSettingsDto { provider: "fax".to_string(), ..dto() }).is_err());
+        assert!(EmailSettings::try_from(EmailSettingsDto { smtp_security: "none".to_string(), ..dto() }).is_err());
+    }
+
+    #[test]
+    fn has_secret_is_optional_on_input() {
+        let parsed: EmailSettingsDto = serde_json::from_str(
+            r#"{"provider":"none","fromAddress":null,"toAddress":null,"smtpHost":null,"smtpPort":null,"smtpUsername":null,"smtpSecurity":"starttls"}"#,
+        )
+        .unwrap();
+        assert!(!parsed.has_secret);
+    }
+}
+
+// --- end email settings (N2) ------------------------------------------------
+
+// --- Notifications (N1) -----------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationCategoryDto {
+    /// reminders|progress|weekly_summary|streak_pace
+    pub category: String,
+    pub enabled: bool,
+    pub local: bool,
+    pub email: bool,
+}
+
+/// Times are "HH:MM"; quiet hours are off when either end is null.
+/// `email_configured` and `permission` are read-only status for the page and
+/// ignored on save.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationSettingsDto {
+    pub categories: Vec<NotificationCategoryDto>,
+    pub reminder_time: String,
+    pub weekly_day: String,
+    pub weekly_time: String,
+    pub streak_alert_time: String,
+    pub pace_threshold: f64,
+    pub quiet_start: Option<String>,
+    pub quiet_end: Option<String>,
+    pub bundle_progress: bool,
+    pub launch_at_login: bool,
+    pub close_to_tray: bool,
+    #[serde(default)]
+    pub email_configured: bool,
+    /// "granted" | "denied" | "prompt"
+    #[serde(default)]
+    pub permission: String,
+}
+
+impl NotificationSettingsDto {
+    pub fn from_domain(
+        prefs: &NotificationPrefs,
+        s: &NotificationSchedule,
+        email_configured: bool,
+        permission: &str,
+    ) -> Self {
+        Self {
+            categories: NotificationCategory::ALL
+                .iter()
+                .map(|c| {
+                    let p = prefs.get(*c);
+                    NotificationCategoryDto {
+                        category: c.id().to_string(),
+                        enabled: p.enabled,
+                        local: p.local,
+                        email: p.email,
+                    }
+                })
+                .collect(),
+            reminder_time: format_clock(s.reminder_time),
+            weekly_day: weekday_to_str(s.weekly_day).to_string(),
+            weekly_time: format_clock(s.weekly_time),
+            streak_alert_time: format_clock(s.streak_alert_time),
+            pace_threshold: s.pace_threshold,
+            quiet_start: s.quiet_hours.map(|q| format_clock(q.start)),
+            quiet_end: s.quiet_hours.map(|q| format_clock(q.end)),
+            bundle_progress: s.bundle_progress,
+            launch_at_login: s.launch_at_login,
+            close_to_tray: s.close_to_tray,
+            email_configured,
+            permission: permission.to_string(),
+        }
+    }
+
+    pub fn to_domain(&self) -> Result<(NotificationPrefs, NotificationSchedule), String> {
+        let mut prefs = NotificationPrefs::default();
+        for c in &self.categories {
+            let category = NotificationCategory::from_id(&c.category)
+                .ok_or_else(|| format!("unknown notification category '{}'", c.category))?;
+            prefs.set(
+                category,
+                CategoryPrefs {
+                    enabled: c.enabled,
+                    local: c.local,
+                    email: c.email,
+                },
+            );
+        }
+        let clock = |label: &str, v: &str| {
+            parse_clock(v).ok_or_else(|| format!("invalid {label} '{v}' (expected HH:MM)"))
+        };
+        let quiet_hours = match (self.quiet_start.as_deref(), self.quiet_end.as_deref()) {
+            (Some(start), Some(end)) => Some(QuietHours {
+                start: clock("quiet hours start", start)?,
+                end: clock("quiet hours end", end)?,
+            }),
+            _ => None,
+        };
+        if !(self.pace_threshold.is_finite() && self.pace_threshold > 0.0) {
+            return Err("pace threshold must be a positive number".to_string());
+        }
+        Ok((
+            prefs,
+            NotificationSchedule {
+                reminder_time: clock("reminder time", &self.reminder_time)?,
+                weekly_day: weekday_from_str(&self.weekly_day)
+                    .ok_or_else(|| format!("unknown weekday '{}'", self.weekly_day))?,
+                weekly_time: clock("weekly time", &self.weekly_time)?,
+                streak_alert_time: clock("streak alert time", &self.streak_alert_time)?,
+                pace_threshold: self.pace_threshold,
+                quiet_hours,
+                bundle_progress: self.bundle_progress,
+                launch_at_login: self.launch_at_login,
+                close_to_tray: self.close_to_tray,
+            },
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -620,5 +892,36 @@ mod tests {
         assert_eq!(json["confidence"], "insufficient");
         assert!(json["sourceUrl"].is_null());
         assert!(json["year"].is_null());
+    }
+
+    #[test]
+    fn notification_settings_dto_round_trips_and_validates() {
+        use crate::domain::notifications::{NotificationPrefs, NotificationSchedule};
+        let mut prefs = NotificationPrefs::default();
+        prefs.progress.email = true;
+        let schedule = NotificationSchedule {
+            quiet_hours: Some(QuietHours {
+                start: time::macros::time!(22:00),
+                end: time::macros::time!(07:00),
+            }),
+            ..Default::default()
+        };
+        let dto = NotificationSettingsDto::from_domain(&prefs, &schedule, true, "granted");
+        let json = serde_json::to_value(&dto).unwrap();
+        assert_eq!(json["reminderTime"], "20:00");
+        assert_eq!(json["quietStart"], "22:00");
+        assert_eq!(json["categories"][1]["category"], "progress");
+        assert_eq!(dto.to_domain().unwrap(), (prefs, schedule));
+
+        let bad = NotificationSettingsDto {
+            reminder_time: "8pm".to_string(),
+            ..dto.clone()
+        };
+        assert!(bad.to_domain().is_err());
+        let bad = NotificationSettingsDto {
+            pace_threshold: 0.0,
+            ..dto
+        };
+        assert!(bad.to_domain().is_err());
     }
 }

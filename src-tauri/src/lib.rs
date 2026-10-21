@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use tauri::Manager;
 
+use application::notifications::NotificationHub;
 use infrastructure::db::Db;
 use interface::state::AppState;
 
@@ -15,14 +16,27 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
             let db_path = app_data_dir.join("ripple.sqlite");
             let db = Arc::new(Db::open(&db_path)?);
-            app.manage(AppState { db, db_path });
+            let notifications = Arc::new(NotificationHub::default());
+            app.manage(AppState {
+                db: Arc::clone(&db),
+                db_path,
+                notifications: Arc::clone(&notifications),
+            });
+            interface::tray::build(app)?;
+            interface::scheduler::spawn(app.handle().clone(), db, notifications);
             Ok(())
         })
+        .on_window_event(interface::tray::on_window_event)
         .invoke_handler(tauri::generate_handler![
             interface::commands::list_habits,
             interface::commands::get_habit,
@@ -54,7 +68,22 @@ pub fn run() {
             interface::commands::preview_import,
             interface::commands::apply_import,
             interface::commands::export_entries,
+            interface::commands::get_email_settings,
+            interface::commands::save_email_settings,
+            interface::commands::clear_email_secret,
+            interface::commands::send_test_email,
+            interface::commands::get_notification_settings,
+            interface::commands::save_notification_settings,
+            interface::commands::send_test_notification,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, _event| {
+            // macOS: clicking the dock icon brings back a window hidden to
+            // the tray.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                interface::tray::show_main_window(_app);
+            }
+        });
 }
