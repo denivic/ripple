@@ -5,8 +5,10 @@
   import Field from "$lib/ui/Field.svelte";
   import Sheet from "$lib/ui/Sheet.svelte";
   import { StatTile, formatDuration, formatMoney, formatPercent } from "$lib/charts";
-  import { habitsStore, todayStore } from "$lib/stores";
+  import { habitsStore, settingsStore, todayStore } from "$lib/stores";
   import type { HabitPreset } from "$lib/ipc";
+  import { filterPresets, formatPresetSource, groupPresets } from "$lib/habit-presets";
+  import { openUrl } from "@tauri-apps/plugin-opener";
 
   onMount(() => {
     void habitsStore.mount();
@@ -23,15 +25,51 @@
   let newHabitLifeMinutes = $state(0);
   let newHabitCost = $state(0);
 
-  async function addPreset(preset: HabitPreset) {
-    await habitsStore.create({
-      name: preset.name,
-      unitLabel: preset.unitLabel,
-      lifeMinutesPerUnit: preset.lifeMinutesPerUnit,
-      costPerUnit: 0,
-      color: null,
-      archived: false,
-    });
+  let presetQuery = $state("");
+  let selectedPreset = $state<HabitPreset | null>(null);
+  let presetListEl: HTMLDivElement | undefined = $state();
+  const presetGroups = $derived(groupPresets(filterPresets(todayStore.presets, presetQuery)));
+  const selectedPresetSource = $derived(selectedPreset ? formatPresetSource(selectedPreset) : null);
+  // Roving tabindex: one Tab stop for the whole list — the chosen preset if
+  // it's still visible, else the first match.
+  const visiblePresets = $derived(presetGroups.flatMap((g) => g.presets));
+  const presetTabStopId = $derived(
+    visiblePresets.find((p) => p.id === selectedPreset?.id)?.id ?? visiblePresets[0]?.id,
+  );
+
+  // The preset only pre-fills the form; every field stays editable, and cost
+  // is always the user's own figure.
+  function choosePreset(preset: HabitPreset) {
+    selectedPreset = preset;
+    newHabitName = preset.name;
+    newHabitUnit = preset.unitLabel;
+    newHabitLifeMinutes = preset.lifeMinutesPerUnit;
+  }
+
+  function presetOptions(): HTMLButtonElement[] {
+    return presetListEl ? Array.from(presetListEl.querySelectorAll<HTMLButtonElement>("button[data-preset]")) : [];
+  }
+
+  // Arrow keys move between preset options (and down from the search box
+  // into the list), so the list doesn't need one Tab stop per preset.
+  function handlePresetKeydown(e: KeyboardEvent) {
+    const options = presetOptions();
+    if (options.length === 0) return;
+    const index = options.indexOf(document.activeElement as HTMLButtonElement);
+    let next: number;
+    if (e.key === "ArrowDown") next = index < 0 ? 0 : Math.min(index + 1, options.length - 1);
+    else if (e.key === "ArrowUp") next = Math.max(index - 1, 0);
+    else if (e.key === "Home" && index >= 0) next = 0;
+    else if (e.key === "End" && index >= 0) next = options.length - 1;
+    else return;
+    e.preventDefault();
+    options[next].focus();
+  }
+
+  function closeAddHabit() {
+    addHabitOpen = false;
+    presetQuery = "";
+    selectedPreset = null;
   }
 
   async function addCustomHabit() {
@@ -48,7 +86,7 @@
     newHabitUnit = "";
     newHabitLifeMinutes = 0;
     newHabitCost = 0;
-    addHabitOpen = false;
+    closeAddHabit();
   }
 
   async function logOne(habitId: number) {
@@ -68,7 +106,11 @@
   {#if todayStore.summary}
     <section class="toll" aria-label="Today's running toll">
       <StatTile label="Time spent" value={formatDuration(todayStore.summary.timeSpentMinutes)} />
-      <StatTile label="Life shortened (est.)" value={formatDuration(todayStore.summary.lifeShortenedMinutes)} />
+      {#if todayStore.summary.lifeShortenedMinutes < 0}
+        <StatTile label="Life gained (est.)" value={formatDuration(-todayStore.summary.lifeShortenedMinutes)} />
+      {:else}
+        <StatTile label="Life shortened (est.)" value={formatDuration(todayStore.summary.lifeShortenedMinutes)} />
+      {/if}
       <StatTile label="Spent" value={formatMoney(todayStore.summary.moneySpent)} />
       <StatTile label="Share of today's waking hours" value={formatPercent(todayStore.summary.wakingLifeShareToday)} />
       {#if todayStore.summary.opportunityCost !== null}
@@ -88,12 +130,9 @@
       <p class="muted">Loading…</p>
     {:else if habitsStore.items.length === 0}
       <div class="empty">
-        <p>No habits yet. Start with a preset or add your own.</p>
+        <p>No habits yet. Start from a cited preset or add your own.</p>
         <div class="presets">
-          {#each todayStore.presets as preset (preset.name)}
-            <Button variant="secondary" onclick={() => addPreset(preset)}>{preset.name}</Button>
-          {/each}
-          <Button variant="ghost" onclick={() => (addHabitOpen = true)}>Custom…</Button>
+          <Button variant="secondary" onclick={() => (addHabitOpen = true)}>Add a habit…</Button>
         </div>
       </div>
     {:else}
@@ -127,12 +166,67 @@
   </section>
 </div>
 
-<Sheet open={addHabitOpen} title="Add a habit" onclose={() => (addHabitOpen = false)}>
+<Sheet open={addHabitOpen} title="Add a habit" onclose={closeAddHabit}>
   <div class="form">
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div class="preset-picker" role="group" aria-label="Start from a preset" onkeydown={handlePresetKeydown}>
+      <Field label="Start from a preset (optional)" placeholder="Search presets" bind:value={presetQuery} />
+      <div class="preset-list" bind:this={presetListEl}>
+        {#each presetGroups as group (group.category)}
+          <div class="preset-group" role="group" aria-labelledby="preset-group-{group.category}">
+            <h3 id="preset-group-{group.category}">{group.label}</h3>
+            {#each group.presets as preset (preset.id)}
+              <button
+                type="button"
+                class="preset-option"
+                data-preset
+                aria-pressed={selectedPreset?.id === preset.id}
+                tabindex={preset.id === presetTabStopId ? 0 : -1}
+                onclick={() => choosePreset(preset)}
+              >
+                <span>{preset.name}</span>
+                <span class="preset-meta">
+                  {#if preset.confidence === "insufficient"}
+                    no estimate
+                  {:else}
+                    {preset.lifeMinutesPerUnit < 0 ? "+" : "−"}{Math.abs(preset.lifeMinutesPerUnit)} min / {preset.unitLabel}
+                  {/if}
+                </span>
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <p class="muted">No presets match “{presetQuery}”.</p>
+        {/each}
+      </div>
+    </div>
+
     <Field label="Name" bind:value={newHabitName} />
     <Field label="Unit (e.g. cigarette, drink)" bind:value={newHabitUnit} />
-    <Field label="Life shortened per unit (minutes)" type="number" bind:value={newHabitLifeMinutes} />
-    <Field label="Cost per unit" type="number" bind:value={newHabitCost} />
+    <Field label="Life effect per unit (minutes; negative = gained)" type="number" bind:value={newHabitLifeMinutes} />
+    <Field label="Cost per unit ({settingsStore.data.currency})" type="number" bind:value={newHabitCost} />
+
+    {#if selectedPreset}
+      <div class="preset-source" aria-live="polite">
+        {#if selectedPreset.confidence === "insufficient"}
+          <p class="insufficient">No reliable estimate — set your own value.</p>
+        {/if}
+        <p>{selectedPreset.note}</p>
+        {#if selectedPreset.derivation}
+          <p class="muted">Derived: {selectedPreset.derivation}</p>
+        {/if}
+        {#if selectedPresetSource}
+          <p class="muted">
+            {selectedPresetSource}
+            {#if selectedPreset.sourceUrl}
+              {@const url = selectedPreset.sourceUrl}
+              · <button type="button" class="link" onclick={() => void openUrl(url)}>Open source</button>
+            {/if}
+          </p>
+        {/if}
+      </div>
+    {/if}
+
     <Button variant="primary" onclick={addCustomHabit}>Add habit</Button>
   </div>
 </Sheet>
@@ -262,5 +356,79 @@
     display: flex;
     flex-direction: column;
     gap: 0.875rem;
+  }
+
+  .preset-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .preset-list {
+    max-height: 14rem;
+    overflow-y: auto;
+    border: 1px solid var(--line-hairline);
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+  }
+  .preset-group h3 {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+    padding: 0.5rem 0.5rem 0.25rem;
+  }
+  .preset-option {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.375rem 0.5rem;
+    border: none;
+    border-radius: 0.375rem;
+    background: none;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    text-align: left;
+    cursor: pointer;
+  }
+  .preset-option:hover {
+    background: var(--surface-hover);
+  }
+  .preset-option:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-translucent);
+  }
+  .preset-option[aria-pressed="true"] {
+    background: var(--accent-translucent);
+  }
+  .preset-meta {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .preset-source {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+  .preset-source .muted {
+    font-size: 0.75rem;
+  }
+  .insufficient {
+    color: var(--accent-base);
+    font-weight: 600;
+  }
+  .link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent-base);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
   }
 </style>

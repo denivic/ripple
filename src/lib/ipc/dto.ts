@@ -87,10 +87,24 @@ export interface TodaySummaryDto {
   remainingWakingLifeMonthsAtTodaysRate: number | null;
 }
 
+export type PresetCategory = "tobacco" | "alcohol" | "cannabis" | "food" | "drink" | "sedentary" | "gain";
+export type PresetConfidence = "high" | "medium" | "low" | "insufficient";
+
 export interface HabitPresetDto {
+  id: string;
   name: string;
   unitLabel: string;
+  /** Positive = life lost per unit, negative = life gained. */
   lifeMinutesPerUnit: number;
+  category: PresetCategory;
+  /** Null only for "insufficient" presets with no source at all. */
+  sourceTitle: string | null;
+  sourceUrl: string | null;
+  year: number | null;
+  confidence: PresetConfidence;
+  derived: boolean;
+  derivation: string | null;
+  note: string;
 }
 
 /** Mirrors `HabitMapping` (src-tauri/src/infrastructure/import/mapping.rs) —

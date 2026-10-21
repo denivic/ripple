@@ -8,6 +8,8 @@ export type {
   HabitMappingDto,
   ImportPreviewDto,
   ImportSummaryDto,
+  PresetCategory,
+  PresetConfidence,
   ProfileDto,
   RowErrorDto,
   SettingsDto,

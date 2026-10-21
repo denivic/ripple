@@ -8,7 +8,7 @@ use crate::application::{
     compute_series, convert_currency as currency_conversion, export_workbook, import_workbook,
     today_summary,
 };
-use crate::domain::cost_model::default_habit_presets;
+use crate::domain::presets::habit_presets;
 use crate::domain::repository::{
     EntryRepository, HabitRepository, ProfileRepository, SettingsRepository,
 };
@@ -316,10 +316,7 @@ pub fn compute_today_summary(
 
 #[tauri::command]
 pub fn get_habit_presets() -> Vec<HabitPresetDto> {
-    default_habit_presets()
-        .into_iter()
-        .map(Into::into)
-        .collect()
+    habit_presets().iter().map(Into::into).collect()
 }
 
 #[tauri::command]

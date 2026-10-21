@@ -6,7 +6,7 @@ use crate::application::compute_series::{
 use crate::application::convert_currency::CurrencyConversion;
 use crate::application::import_workbook::{ImportPreview, ImportSummary};
 use crate::application::today_summary::TodaySummary;
-use crate::domain::cost_model::HabitPreset;
+use crate::domain::presets::{HabitPreset, PresetCategory, PresetConfidence};
 use crate::domain::{
     is_currency_code, Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute,
     WeekStart, WeightUnit,
@@ -356,17 +356,51 @@ impl From<TodaySummary> for TodaySummaryDto {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HabitPresetDto {
+    pub id: String,
     pub name: String,
     pub unit_label: String,
+    /// Positive = life lost per unit, negative = life gained.
     pub life_minutes_per_unit: f64,
+    pub category: String,
+    pub source_title: Option<String>,
+    pub source_url: Option<String>,
+    pub year: Option<u16>,
+    pub confidence: String,
+    pub derived: bool,
+    pub derivation: Option<String>,
+    pub note: String,
 }
 
-impl From<HabitPreset> for HabitPresetDto {
-    fn from(p: HabitPreset) -> Self {
+impl From<&HabitPreset> for HabitPresetDto {
+    fn from(p: &HabitPreset) -> Self {
         Self {
+            id: p.id.to_string(),
             name: p.name.to_string(),
             unit_label: p.unit_label.to_string(),
             life_minutes_per_unit: p.life_minutes_per_unit,
+            category: match p.category {
+                PresetCategory::Tobacco => "tobacco",
+                PresetCategory::Alcohol => "alcohol",
+                PresetCategory::Cannabis => "cannabis",
+                PresetCategory::Food => "food",
+                PresetCategory::Drink => "drink",
+                PresetCategory::Sedentary => "sedentary",
+                PresetCategory::Gain => "gain",
+            }
+            .to_string(),
+            source_title: p.source_title.map(str::to_string),
+            source_url: p.source_url.map(str::to_string),
+            year: p.year,
+            confidence: match p.confidence {
+                PresetConfidence::High => "high",
+                PresetConfidence::Medium => "medium",
+                PresetConfidence::Low => "low",
+                PresetConfidence::Insufficient => "insufficient",
+            }
+            .to_string(),
+            derived: p.derived,
+            derivation: p.derivation.map(str::to_string),
+            note: p.note.to_string(),
         }
     }
 }
@@ -431,3 +465,35 @@ impl From<ImportSummary> for ImportSummaryDto {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::presets::habit_presets;
+
+    #[test]
+    fn habit_preset_dto_carries_source_and_confidence() {
+        let cigarette = habit_presets()
+            .iter()
+            .find(|p| p.id == "cigarette")
+            .unwrap();
+        let dto = HabitPresetDto::from(cigarette);
+        assert_eq!(dto.id, "cigarette");
+        assert_eq!(dto.unit_label, cigarette.unit_label);
+        assert_eq!(dto.life_minutes_per_unit, cigarette.life_minutes_per_unit);
+        assert_eq!(dto.category, "tobacco");
+        assert_eq!(dto.confidence, "high");
+        assert_eq!(dto.source_url.as_deref(), cigarette.source_url);
+        assert_eq!(dto.year, cigarette.year);
+    }
+
+    #[test]
+    fn habit_preset_dto_serializes_camel_case_with_nulls() {
+        let cigar = habit_presets().iter().find(|p| p.id == "cigar").unwrap();
+        let json = serde_json::to_value(HabitPresetDto::from(cigar)).unwrap();
+        assert_eq!(json["unitLabel"], "cigar");
+        assert_eq!(json["lifeMinutesPerUnit"], 0.0);
+        assert_eq!(json["confidence"], "insufficient");
+        assert!(json["sourceUrl"].is_null());
+        assert!(json["year"].is_null());
+    }
+}

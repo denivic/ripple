@@ -2,6 +2,7 @@ pub mod cost_model;
 pub mod currency;
 pub mod entry;
 pub mod habit;
+pub mod presets;
 pub mod profile;
 pub mod projections;
 pub mod repository;

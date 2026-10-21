@@ -11,34 +11,6 @@ use super::profile::{Profile, Sex};
 // wired to a guess; each item that's unreachable until then is marked
 // individually below.
 
-/// Defaults cited in plan-v1.md, offered as starting points for user-editable
-/// per-habit `life_minutes_per_unit`, not as claims of clinical precision.
-pub const DEFAULT_LIFE_MINUTES_PER_CIGARETTE: f64 = 11.0;
-pub const DEFAULT_LIFE_MINUTES_PER_STANDARD_DRINK: f64 = 30.0;
-
-pub struct HabitPreset {
-    pub name: &'static str,
-    pub unit_label: &'static str,
-    pub life_minutes_per_unit: f64,
-}
-
-/// Quick-start suggestions for the "add habit" flow — a starting point the
-/// user edits, not a fixed taxonomy.
-pub fn default_habit_presets() -> Vec<HabitPreset> {
-    vec![
-        HabitPreset {
-            name: "Cigarettes",
-            unit_label: "cigarette",
-            life_minutes_per_unit: DEFAULT_LIFE_MINUTES_PER_CIGARETTE,
-        },
-        HabitPreset {
-            name: "Alcohol",
-            unit_label: "drink",
-            life_minutes_per_unit: DEFAULT_LIFE_MINUTES_PER_STANDARD_DRINK,
-        },
-    ]
-}
-
 /// Grams of pure alcohol in one US standard drink (NIAAA definition).
 #[allow(dead_code)]
 pub const STANDARD_DRINK_GRAMS_ALCOHOL: f64 = 14.0;
@@ -191,7 +163,7 @@ mod tests {
     fn habit() -> Habit {
         let mut h = Habit::new("Cigarettes", "cigarette");
         h.id = Some(HabitId(1));
-        h.life_minutes_per_unit = DEFAULT_LIFE_MINUTES_PER_CIGARETTE;
+        h.life_minutes_per_unit = 11.0;
         h.cost_per_unit = 0.60;
         h
     }
@@ -205,6 +177,14 @@ mod tests {
         assert_eq!(loss.time_spent_minutes, 20.0);
         assert_eq!(loss.life_shortened_minutes, 44.0);
         assert_eq!(loss.total_minutes(), 64.0);
+    }
+
+    #[test]
+    fn negative_life_minutes_count_as_life_gained() {
+        let mut h = habit();
+        h.life_minutes_per_unit = -60.0;
+        let e = Entry::new(HabitId(1), datetime!(2026-01-01 08:00), 2.0);
+        assert_eq!(time_loss_for_entry(&h, &e).life_shortened_minutes, -120.0);
     }
 
     #[test]
