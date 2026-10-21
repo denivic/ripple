@@ -6,6 +6,7 @@ export {
   formatPercent,
   formatSignedPercent,
   multiScaleTimeFormat,
+  setCurrencySource,
 } from "./format";
 export { seriesColorVar } from "./scales";
 export { cumulativeSum, forwardProjection, movingAverage, recentDailyRate, type ProjectedPoint } from "./series-math";

@@ -7,7 +7,8 @@ use crate::application::import_workbook::{ImportPreview, ImportSummary};
 use crate::application::today_summary::TodaySummary;
 use crate::domain::cost_model::HabitPreset;
 use crate::domain::{
-    Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute, WeekStart, WeightUnit,
+    is_currency_code, Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute, WeekStart,
+    WeightUnit,
 };
 use crate::infrastructure::db::codec::{format_date, format_datetime, parse_date, parse_datetime};
 use crate::infrastructure::import::Sheet;
@@ -154,6 +155,7 @@ pub struct SettingsDto {
     pub weight_unit: String,
     pub theme_name: Option<String>,
     pub custom_theme_json: Option<String>,
+    pub currency: String,
 }
 
 impl From<Settings> for SettingsDto {
@@ -179,6 +181,7 @@ impl From<Settings> for SettingsDto {
             .to_string(),
             theme_name: s.theme_name,
             custom_theme_json: s.custom_theme_json,
+            currency: s.currency,
         }
     }
 }
@@ -205,12 +208,16 @@ impl TryFrom<SettingsDto> for Settings {
             "lb" => WeightUnit::Lb,
             other => return Err(format!("unknown weight unit '{other}'")),
         };
+        if !is_currency_code(&d.currency) {
+            return Err(format!("invalid currency code '{}'", d.currency));
+        }
         Ok(Self {
             startup_route,
             week_start,
             weight_unit,
             theme_name: d.theme_name,
             custom_theme_json: d.custom_theme_json,
+            currency: d.currency,
         })
     }
 }

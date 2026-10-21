@@ -30,6 +30,18 @@ pub struct Settings {
     /// a preset. Cleared whenever `custom_theme_json` is set, and vice versa.
     pub theme_name: Option<String>,
     pub custom_theme_json: Option<String>,
+    /// ISO 4217 code (e.g. "USD", "EUR") money amounts are displayed in.
+    /// Kept as a plain code rather than an enum: the frontend offers every
+    /// currency `Intl` knows, and conversion between them is a separate step.
+    pub currency: String,
+}
+
+pub const DEFAULT_CURRENCY: &str = "USD";
+
+/// Shape check only (three ASCII uppercase letters) — whether the code is a
+/// currency `Intl` can format is the frontend's concern.
+pub fn is_currency_code(s: &str) -> bool {
+    s.len() == 3 && s.bytes().all(|b| b.is_ascii_uppercase())
 }
 
 impl Default for Settings {
@@ -40,6 +52,7 @@ impl Default for Settings {
             weight_unit: WeightUnit::Kg,
             theme_name: None,
             custom_theme_json: None,
+            currency: DEFAULT_CURRENCY.to_string(),
         }
     }
 }

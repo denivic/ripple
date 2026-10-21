@@ -9,4 +9,4 @@ pub mod settings;
 pub use entry::{Entry, EntryId};
 pub use habit::{Habit, HabitId};
 pub use profile::{Profile, Sex};
-pub use settings::{Settings, StartupRoute, WeekStart, WeightUnit};
+pub use settings::{is_currency_code, Settings, StartupRoute, WeekStart, WeightUnit};

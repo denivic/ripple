@@ -37,6 +37,8 @@ export interface SettingsDto {
   weightUnit: "kg" | "lb";
   themeName: string | null;
   customThemeJson: string | null;
+  /** ISO 4217 code, e.g. "USD". */
+  currency: string;
 }
 
 export interface DailyPointDto {

@@ -36,6 +36,13 @@
     };
   });
 
+  // Every ISO 4217 code the runtime can format, labelled "EUR — Euro".
+  const currencyNames = new Intl.DisplayNames(undefined, { type: "currency" });
+  const currencyOptions = Intl.supportedValuesOf("currency").map((code) => ({
+    value: code,
+    label: `${code} — ${currencyNames.of(code) ?? code}`,
+  }));
+
   function announce(message: string): void {
     status = message;
   }
@@ -217,6 +224,14 @@
           ]}
           oninput={(v) => saveGeneral({ weightUnit: v as SettingsDto["weightUnit"] })}
           hint="Used for the Profile page's weight field."
+        />
+        <Field
+          type="select"
+          label="Currency"
+          value={settingsStore.data.currency}
+          options={currencyOptions}
+          oninput={(v) => saveGeneral({ currency: v })}
+          hint="How money amounts are displayed. Existing amounts are not converted."
         />
       </div>
     </section>

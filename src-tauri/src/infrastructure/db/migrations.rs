@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use super::error::DbError;
 
-const CURRENT_VERSION: i32 = 3;
+const CURRENT_VERSION: i32 = 4;
 
 /// Versioned via `PRAGMA user_version` rather than a migrations table — the
 /// whole schema lives in this file for now, so there's nothing a table would
@@ -17,6 +17,9 @@ pub fn run(conn: &Connection) -> Result<(), DbError> {
     }
     if version < 3 {
         migrate_v3(conn)?;
+    }
+    if version < 4 {
+        migrate_v4(conn)?;
     }
     conn.pragma_update(None, "user_version", CURRENT_VERSION)?;
     Ok(())
@@ -94,4 +97,60 @@ fn migrate_v3(conn: &Connection) -> Result<(), DbError> {
         ",
     )?;
     Ok(())
+}
+
+fn migrate_v4(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "
+        -- ISO 4217 code money is displayed in. Existing rows were implicitly
+        -- USD (the old hard-coded default), so the column default keeps them
+        -- showing what they always showed.
+        ALTER TABLE settings ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD';
+        ",
+    )?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn user_version(conn: &Connection) -> i32 {
+        conn.query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap()
+    }
+
+    #[test]
+    fn fresh_database_reaches_current_version() {
+        let conn = Connection::open_in_memory().unwrap();
+        run(&conn).unwrap();
+        assert_eq!(user_version(&conn), CURRENT_VERSION);
+    }
+
+    #[test]
+    fn v4_adds_currency_defaulting_to_usd_on_an_existing_v3_row() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        conn.pragma_update(None, "user_version", 3).unwrap();
+        conn.execute(
+            "INSERT INTO settings (id, weight_unit) VALUES (1, 'lb')",
+            [],
+        )
+        .unwrap();
+
+        run(&conn).unwrap();
+
+        assert_eq!(user_version(&conn), 4);
+        let (currency, weight_unit): (String, String) = conn
+            .query_row(
+                "SELECT currency, weight_unit FROM settings WHERE id = 1",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(currency, "USD");
+        assert_eq!(weight_unit, "lb");
+    }
 }

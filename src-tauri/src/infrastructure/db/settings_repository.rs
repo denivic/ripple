@@ -3,7 +3,9 @@ use std::sync::Arc;
 use rusqlite::{params, OptionalExtension};
 
 use crate::domain::repository::{RepoResult, SettingsRepository};
-use crate::domain::settings::{Settings, StartupRoute, WeekStart, WeightUnit};
+use crate::domain::settings::{
+    is_currency_code, Settings, StartupRoute, WeekStart, WeightUnit, DEFAULT_CURRENCY,
+};
 
 use super::Db;
 
@@ -73,13 +75,14 @@ impl SettingsRepository for SqliteSettingsRepository {
         let conn = self.db.lock()?;
         let settings = conn
             .query_row(
-                "SELECT startup_route, week_start, weight_unit, theme_name, custom_theme_json
+                "SELECT startup_route, week_start, weight_unit, theme_name, custom_theme_json, currency
                  FROM settings WHERE id = 1",
                 [],
                 |row| {
                     let startup_route: String = row.get(0)?;
                     let week_start: String = row.get(1)?;
                     let weight_unit: String = row.get(2)?;
+                    let currency: String = row.get(5)?;
                     Ok(Settings {
                         startup_route: startup_route_from_str(&startup_route)
                             .unwrap_or(StartupRoute::Today),
@@ -87,6 +90,11 @@ impl SettingsRepository for SqliteSettingsRepository {
                         weight_unit: weight_unit_from_str(&weight_unit).unwrap_or(WeightUnit::Kg),
                         theme_name: row.get(3)?,
                         custom_theme_json: row.get(4)?,
+                        currency: if is_currency_code(&currency) {
+                            currency
+                        } else {
+                            DEFAULT_CURRENCY.to_string()
+                        },
                     })
                 },
             )
@@ -97,20 +105,22 @@ impl SettingsRepository for SqliteSettingsRepository {
     fn save(&self, settings: &Settings) -> RepoResult<()> {
         let conn = self.db.lock()?;
         conn.execute(
-            "INSERT INTO settings (id, startup_route, week_start, weight_unit, theme_name, custom_theme_json)
-             VALUES (1, ?1, ?2, ?3, ?4, ?5)
+            "INSERT INTO settings (id, startup_route, week_start, weight_unit, theme_name, custom_theme_json, currency)
+             VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)
              ON CONFLICT(id) DO UPDATE SET
                startup_route = excluded.startup_route,
                week_start = excluded.week_start,
                weight_unit = excluded.weight_unit,
                theme_name = excluded.theme_name,
-               custom_theme_json = excluded.custom_theme_json",
+               custom_theme_json = excluded.custom_theme_json,
+               currency = excluded.currency",
             params![
                 startup_route_to_str(settings.startup_route),
                 week_start_to_str(settings.week_start),
                 weight_unit_to_str(settings.weight_unit),
                 settings.theme_name,
                 settings.custom_theme_json,
+                settings.currency,
             ],
         )?;
         Ok(())
@@ -140,6 +150,7 @@ mod tests {
             weight_unit: WeightUnit::Lb,
             theme_name: None,
             custom_theme_json: Some(r#"{"schemaVersion":1}"#.to_string()),
+            currency: "EUR".to_string(),
         };
         repo.save(&settings).unwrap();
         assert_eq!(repo.get().unwrap(), settings);
@@ -162,5 +173,17 @@ mod tests {
             repo.get().unwrap().theme_name,
             Some("Deep Current".to_string())
         );
+    }
+
+    #[test]
+    fn malformed_stored_currency_falls_back_to_default() {
+        let repo = repo();
+        repo.save(&Settings::default()).unwrap();
+        repo.db
+            .lock()
+            .unwrap()
+            .execute("UPDATE settings SET currency = 'nope' WHERE id = 1", [])
+            .unwrap();
+        assert_eq!(repo.get().unwrap().currency, DEFAULT_CURRENCY);
     }
 }

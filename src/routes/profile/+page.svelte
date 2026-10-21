@@ -115,7 +115,7 @@
         hint="Affects: waking-life share — the denominator for cost-of-time metrics."
       />
       <Field
-        label="Net hourly income"
+        label="Net hourly income ({settingsStore.data.currency})"
         type="number"
         value={profile.netHourlyIncome ?? ""}
         oninput={(v) => (profile.netHourlyIncome = v === "" ? null : Number(v))}

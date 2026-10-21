@@ -17,6 +17,7 @@
     forwardProjection,
     formatCalendarDate,
     formatDuration,
+    formatMoney,
     formatSignedPercent,
     movingAverage,
     multiScaleTimeFormat,
@@ -155,7 +156,7 @@
   );
 
   function breakdownValueLabel(value: number): string {
-    return breakdownMetric === "money" ? `$${value.toFixed(2)}` : formatDuration(value);
+    return breakdownMetric === "money" ? formatMoney(value) : formatDuration(value);
   }
 
   // --- 6. Streak sparkline --------------------------------------------------

@@ -18,7 +18,19 @@ export function formatDuration(totalMinutes: number): string {
   return `${sign}${minutes}m`;
 }
 
-export function formatMoney(amount: number, currency = "USD"): string {
+/**
+ * Where `formatMoney` gets its default currency. The settings store installs
+ * a getter that reads its `$state`, so templates calling `formatMoney(x)`
+ * re-render when the currency changes — while this module stays free of any
+ * store/IPC import (and testable under plain vitest).
+ */
+let currencySource: () => string = () => "USD";
+
+export function setCurrencySource(source: () => string): void {
+  currencySource = source;
+}
+
+export function formatMoney(amount: number, currency = currencySource()): string {
   return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
 }
 

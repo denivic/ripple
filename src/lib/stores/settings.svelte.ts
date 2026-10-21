@@ -1,3 +1,4 @@
+import { setCurrencySource } from "$lib/charts/format";
 import { commands, onDataChanged, type SettingsDto } from "$lib/ipc";
 import { builtInThemes, themeStore, validateTheme, type Theme } from "$lib/theme";
 import type { UnlistenFn } from "@tauri-apps/api/event";
@@ -8,6 +9,7 @@ const DEFAULT_SETTINGS: SettingsDto = {
   weightUnit: "kg",
   themeName: null,
   customThemeJson: null,
+  currency: "USD",
 };
 
 class SettingsStore {
@@ -95,3 +97,7 @@ class SettingsStore {
 }
 
 export const settingsStore = new SettingsStore();
+
+// Reading `data.currency` inside formatMoney's default keeps money labels
+// reactive to the setting without each call site passing it.
+setCurrencySource(() => settingsStore.data.currency);

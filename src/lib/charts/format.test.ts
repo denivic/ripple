@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { formatDuration, formatSignedPercent, multiScaleTimeFormat } from "./format";
+import { afterEach, describe, expect, it } from "vitest";
+import { formatDuration, formatMoney, formatSignedPercent, multiScaleTimeFormat, setCurrencySource } from "./format";
 
 describe("formatDuration", () => {
   it("formats zero as 0m", () => {
@@ -60,5 +60,37 @@ describe("multiScaleTimeFormat", () => {
 
   it("shows hours:minutes for an intraday tick", () => {
     expect(multiScaleTimeFormat(new Date(2026, 2, 14, 8, 30))).toBe("08:30");
+  });
+});
+
+describe("formatMoney", () => {
+  // Fixed-locale expectations would be brittle (Intl output depends on the
+  // runtime locale), so compare against Intl's own rendering instead.
+  const expected = (amount: number, currency: string) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
+
+  afterEach(() => setCurrencySource(() => "USD"));
+
+  it("defaults to USD before any currency source is installed", () => {
+    expect(formatMoney(12.5)).toBe(expected(12.5, "USD"));
+  });
+
+  it("uses the installed currency source as the default", () => {
+    setCurrencySource(() => "EUR");
+    expect(formatMoney(12.5)).toBe(expected(12.5, "EUR"));
+    expect(formatMoney(12.5)).not.toBe(expected(12.5, "USD"));
+  });
+
+  it("re-reads the source on every call", () => {
+    let currency = "GBP";
+    setCurrencySource(() => currency);
+    expect(formatMoney(3)).toBe(expected(3, "GBP"));
+    currency = "JPY";
+    expect(formatMoney(3)).toBe(expected(3, "JPY"));
+  });
+
+  it("an explicit currency argument wins over the source", () => {
+    setCurrencySource(() => "EUR");
+    expect(formatMoney(7, "CHF")).toBe(expected(7, "CHF"));
   });
 });
