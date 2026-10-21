@@ -3,5 +3,6 @@ export { default as EmailSettings } from "./EmailSettings.svelte";
 export { default as Field } from "./Field.svelte";
 export { default as Sheet } from "./Sheet.svelte";
 export { default as Sidebar } from "./Sidebar.svelte";
+export { default as TimeField } from "./TimeField.svelte";
 export { default as Toggle } from "./Toggle.svelte";
 export { default as Toolbar } from "./Toolbar.svelte";

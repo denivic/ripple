@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { HabitPreset } from "$lib/ipc";
-import { filterPresets, formatPresetSource, groupPresets } from "./habit-presets";
+import { filterPresets, formatPresetSource, groupPresets, presetUnitLabel } from "./habit-presets";
 
 function preset(overrides: Partial<HabitPreset>): HabitPreset {
   return {
     id: "x",
     name: "X",
     unitLabel: "unit",
+    unitLabelImperial: null,
     lifeMinutesPerUnit: 0,
     minutesPerUnit: 0,
     category: "food",
@@ -65,5 +66,21 @@ describe("formatPresetSource", () => {
   it("omits a missing year and returns null without a source", () => {
     expect(formatPresetSource(preset({ sourceTitle: "BMJ", year: null }))).toBe("Source: BMJ · confidence: medium");
     expect(formatPresetSource(preset({ sourceTitle: null }))).toBeNull();
+  });
+});
+
+describe("presetUnitLabel", () => {
+  const meat = preset({ unitLabel: "portion (85 g)", unitLabelImperial: "portion (3 oz)" });
+
+  it("uses the metric label for metric units", () => {
+    expect(presetUnitLabel(meat, "kg")).toBe("portion (85 g)");
+  });
+
+  it("uses the imperial label for imperial units", () => {
+    expect(presetUnitLabel(meat, "lb")).toBe("portion (3 oz)");
+  });
+
+  it("falls back to the metric label when there is no imperial one", () => {
+    expect(presetUnitLabel(preset({ unitLabel: "cigarette" }), "lb")).toBe("cigarette");
   });
 });

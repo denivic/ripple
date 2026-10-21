@@ -1,7 +1,10 @@
 export { horizontalBarPath, verticalBarPath } from "./bar-path";
 export {
   formatCalendarDate,
+  formatClock,
+  formatClockTime,
   formatDuration,
+  formatHourLabel,
   formatMoney,
   formatMoneyCompact,
   formatMoneyCompactParts,
@@ -9,6 +12,7 @@ export {
   formatSignedPercent,
   multiScaleTimeFormat,
   setCurrencySource,
+  setTimeFormatSource,
 } from "./format";
 export { seriesColorVar } from "./scales";
 export { cumulativeSum, forwardProjection, movingAverage, recentDailyRate, type ProjectedPoint } from "./series-math";

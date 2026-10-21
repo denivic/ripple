@@ -7,7 +7,7 @@
   import { StatTile, formatDuration, formatMoney, formatMoneyCompactParts, formatPercent } from "$lib/charts";
   import { habitsStore, settingsStore, todayStore } from "$lib/stores";
   import type { HabitPreset } from "$lib/ipc";
-  import { filterPresets, formatPresetSource, groupPresets } from "$lib/habit-presets";
+  import { filterPresets, formatPresetSource, groupPresets, presetUnitLabel } from "$lib/habit-presets";
   import { openUrl } from "@tauri-apps/plugin-opener";
 
   onMount(() => {
@@ -43,7 +43,7 @@
   function choosePreset(preset: HabitPreset) {
     selectedPreset = preset;
     newHabitName = preset.name;
-    newHabitUnit = preset.unitLabel;
+    newHabitUnit = presetUnitLabel(preset, settingsStore.data.weightUnit);
     newHabitLifeMinutes = preset.lifeMinutesPerUnit;
     newHabitMinutesPerUnit = preset.minutesPerUnit;
   }
@@ -261,7 +261,7 @@
                   {#if preset.confidence === "insufficient"}
                     no estimate
                   {:else}
-                    {preset.lifeMinutesPerUnit < 0 ? "+" : "−"}{Math.abs(preset.lifeMinutesPerUnit)} min / {preset.unitLabel}
+                    {preset.lifeMinutesPerUnit < 0 ? "+" : "−"}{Math.abs(preset.lifeMinutesPerUnit)} min / {presetUnitLabel(preset, settingsStore.data.weightUnit)}
                   {/if}
                 </span>
               </button>

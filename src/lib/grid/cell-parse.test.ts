@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setTimeFormatSource } from "../charts/format";
 import { formatCell, parseCell, type HabitLookup } from "./cell-parse";
 
 const habits: HabitLookup = {
@@ -49,6 +50,35 @@ describe("parseCell: occurredAt", () => {
   it("errors on unparseable text", () => {
     expect(parseCell("occurredAt", "not a date", habits).ok).toBe(false);
   });
+
+  function hourMinute(text: string): [number, number] | null {
+    const result = parseCell("occurredAt", text, habits);
+    if (!result.ok) return null;
+    const d = result.value as Date;
+    return [d.getHours(), d.getMinutes()];
+  }
+
+  it("accepts 24-hour and 12-hour times regardless of the setting", () => {
+    for (const format of ["24h", "12h"] as const) {
+      setTimeFormatSource(() => format);
+      expect(hourMinute("2026-03-14 13:05")).toEqual([13, 5]);
+      expect(hourMinute("2026-03-14 1:05 PM")).toEqual([13, 5]);
+      expect(hourMinute("2026-03-14 1:05pm")).toEqual([13, 5]);
+      expect(hourMinute("3/14/2026 1:05 PM")).toEqual([13, 5]);
+    }
+    setTimeFormatSource(() => "24h");
+  });
+
+  it("maps 12 AM to midnight and 12 PM to noon", () => {
+    expect(hourMinute("2026-03-14 12:00 AM")).toEqual([0, 0]);
+    expect(hourMinute("2026-03-14 12:30 PM")).toEqual([12, 30]);
+    expect(hourMinute("2026-03-14 9:15 a.m.")).toEqual([9, 15]);
+  });
+
+  it("rejects a 12-hour time with an out-of-range hour", () => {
+    expect(parseCell("occurredAt", "2026-03-14 13:05 PM", habits).ok).toBe(false);
+    expect(parseCell("occurredAt", "2026-03-14 0:05 AM", habits).ok).toBe(false);
+  });
 });
 
 describe("parseCell: quantity", () => {
@@ -86,11 +116,22 @@ describe("parseCell: note", () => {
 });
 
 describe("formatCell round-trips parseCell for canonical values", () => {
+  afterEach(() => setTimeFormatSource(() => "24h"));
+
   it("occurredAt", () => {
     const date = new Date(2026, 2, 14, 8, 5);
     const text = formatCell("occurredAt", date, null);
+    expect(text).toBe("2026-03-14 08:05");
     const parsed = parseCell("occurredAt", text, habits);
     expect(parsed).toEqual({ ok: true, value: date });
+  });
+
+  it("occurredAt in 12-hour mode", () => {
+    setTimeFormatSource(() => "12h");
+    const date = new Date(2026, 2, 14, 20, 5);
+    const text = formatCell("occurredAt", date, null);
+    expect(text).toBe("2026-03-14 8:05 PM");
+    expect(parseCell("occurredAt", text, habits)).toEqual({ ok: true, value: date });
   });
 
   it("quantity", () => {

@@ -36,6 +36,7 @@ export interface SettingsDto {
   startupRoute: StartupRouteDto;
   weekStart: "monday" | "sunday";
   weightUnit: "kg" | "lb";
+  timeFormat: "24h" | "12h";
   themeName: string | null;
   customThemeJson: string | null;
   /** ISO 4217 code, e.g. "USD". */
@@ -119,6 +120,8 @@ export interface HabitPresetDto {
   id: string;
   name: string;
   unitLabel: string;
+  /** Imperial variant of `unitLabel`; null when it reads the same. */
+  unitLabelImperial: string | null;
   /** Positive = life lost per unit, negative = life gained. */
   lifeMinutesPerUnit: number;
   /** Editable default for time spent per unit, not a research figure; 0 = not time-tracked. */

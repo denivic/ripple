@@ -31,7 +31,11 @@ pub enum PresetConfidence {
 pub struct HabitPreset {
     pub id: &'static str,
     pub name: &'static str,
+    /// Metric-first, since that's the default Units setting.
     pub unit_label: &'static str,
+    /// The same label with imperial amounts, for labels that contain a
+    /// metric amount; `None` when `unit_label` reads the same either way.
+    pub unit_label_imperial: Option<&'static str>,
     /// Positive means life lost per unit; negative means life gained.
     pub life_minutes_per_unit: f64,
     /// Typical minutes one unit takes, for time-spent tracking. Unlike the
@@ -60,6 +64,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "cigarette",
         name: "Cigarettes",
         unit_label: "cigarette",
+        unit_label_imperial: None,
         life_minutes_per_unit: 20.0,
         minutes_per_unit: 5.0,
         category: PresetCategory::Tobacco,
@@ -75,6 +80,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "alcohol-drink-10g",
         name: "Alcoholic drinks (10 g)",
         unit_label: "drink (10 g alcohol)",
+        unit_label_imperial: None,
         life_minutes_per_unit: 15.0,
         minutes_per_unit: 0.0,
         category: PresetCategory::Alcohol,
@@ -89,7 +95,8 @@ static HABIT_PRESETS: &[HabitPreset] = &[
     HabitPreset {
         id: "alcohol-us-standard-drink",
         name: "Alcoholic drinks (US standard)",
-        unit_label: "US standard drink (14 g)",
+        unit_label: "standard drink (14 g alcohol)",
+        unit_label_imperial: None,
         life_minutes_per_unit: 21.0,
         minutes_per_unit: 0.0,
         category: PresetCategory::Alcohol,
@@ -105,6 +112,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "red-meat-portion",
         name: "Red meat",
         unit_label: "portion (85 g)",
+        unit_label_imperial: Some("portion (3 oz)"),
         life_minutes_per_unit: 30.0,
         minutes_per_unit: 0.0,
         category: PresetCategory::Food,
@@ -120,6 +128,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "tv-2h",
         name: "Watching TV",
         unit_label: "2 hours of TV",
+        unit_label_imperial: None,
         life_minutes_per_unit: 30.0,
         minutes_per_unit: 120.0,
         category: PresetCategory::Sedentary,
@@ -135,6 +144,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "hot-dog",
         name: "Hot dogs",
         unit_label: "hot dog in bun (140 g)",
+        unit_label_imperial: Some("hot dog in bun (5 oz)"),
         life_minutes_per_unit: 36.3,
         minutes_per_unit: 0.0,
         category: PresetCategory::Food,
@@ -150,6 +160,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "bacon",
         name: "Bacon",
         unit_label: "serving (15 g, ~2 slices)",
+        unit_label_imperial: Some("serving (0.5 oz, ~2 slices)"),
         life_minutes_per_unit: 6.44,
         minutes_per_unit: 0.0,
         category: PresetCategory::Food,
@@ -165,6 +176,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "deli-ham",
         name: "Deli ham",
         unit_label: "serving (55 g)",
+        unit_label_imperial: Some("serving (2 oz)"),
         life_minutes_per_unit: 28.52,
         minutes_per_unit: 0.0,
         category: PresetCategory::Food,
@@ -180,6 +192,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "pork-sausage",
         name: "Pork sausage",
         unit_label: "serving (55 g)",
+        unit_label_imperial: Some("serving (2 oz)"),
         life_minutes_per_unit: 22.15,
         minutes_per_unit: 0.0,
         category: PresetCategory::Food,
@@ -195,6 +208,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "cheeseburger",
         name: "Cheeseburgers",
         unit_label: "fast-food cheeseburger (140 g)",
+        unit_label_imperial: Some("fast-food cheeseburger (5 oz)"),
         life_minutes_per_unit: 6.26,
         minutes_per_unit: 0.0,
         category: PresetCategory::Food,
@@ -210,6 +224,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "pepperoni-pizza",
         name: "Pepperoni pizza",
         unit_label: "slice (140 g)",
+        unit_label_imperial: Some("slice (5 oz)"),
         life_minutes_per_unit: 5.32,
         minutes_per_unit: 0.0,
         category: PresetCategory::Food,
@@ -224,7 +239,8 @@ static HABIT_PRESETS: &[HabitPreset] = &[
     HabitPreset {
         id: "sugary-soda",
         name: "Sugary soda",
-        unit_label: "can (12 oz / 360 g)",
+        unit_label: "can (355 ml)",
+        unit_label_imperial: Some("can (12 fl oz)"),
         life_minutes_per_unit: 12.48,
         minutes_per_unit: 0.0,
         category: PresetCategory::Drink,
@@ -240,6 +256,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "energy-drink",
         name: "Energy drinks",
         unit_label: "can",
+        unit_label_imperial: None,
         life_minutes_per_unit: 0.0,
         minutes_per_unit: 0.0,
         category: PresetCategory::Drink,
@@ -255,6 +272,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "moderate-exercise-20min",
         name: "Moderate exercise",
         unit_label: "20 minutes (first of the day)",
+        unit_label_imperial: None,
         life_minutes_per_unit: -60.0,
         minutes_per_unit: 20.0,
         category: PresetCategory::Gain,
@@ -270,6 +288,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "fruit-veg-5-a-day",
         name: "Fruit & vegetables (5 a day)",
         unit_label: "day with 5+ servings",
+        unit_label_imperial: None,
         life_minutes_per_unit: -120.0,
         minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
@@ -285,6 +304,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "coffee-cup",
         name: "Coffee",
         unit_label: "cup",
+        unit_label_imperial: None,
         life_minutes_per_unit: -12.0,
         minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
@@ -300,6 +320,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "nuts",
         name: "Nuts",
         unit_label: "handful (30 g peanuts)",
+        unit_label_imperial: Some("handful (1 oz peanuts)"),
         life_minutes_per_unit: -25.5,
         minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
@@ -315,6 +336,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "fruit-piece",
         name: "Fruit",
         unit_label: "piece of fruit (140 g apple)",
+        unit_label_imperial: Some("piece of fruit (5 oz apple)"),
         life_minutes_per_unit: -13.46,
         minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
@@ -330,6 +352,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "salmon",
         name: "Salmon",
         unit_label: "serving (85 g)",
+        unit_label_imperial: Some("serving (3 oz)"),
         life_minutes_per_unit: -15.98,
         minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
@@ -345,6 +368,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "beans",
         name: "Beans",
         unit_label: "serving (90 g cooked)",
+        unit_label_imperial: Some("serving (3 oz cooked)"),
         life_minutes_per_unit: -10.42,
         minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
@@ -360,6 +384,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "cigar",
         name: "Cigars",
         unit_label: "cigar",
+        unit_label_imperial: None,
         life_minutes_per_unit: 0.0,
         minutes_per_unit: 45.0,
         category: PresetCategory::Tobacco,
@@ -375,6 +400,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "pipe",
         name: "Pipe tobacco",
         unit_label: "bowl",
+        unit_label_imperial: None,
         life_minutes_per_unit: 0.0,
         minutes_per_unit: 20.0,
         category: PresetCategory::Tobacco,
@@ -390,6 +416,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "vape",
         name: "Vaping / e-cigarettes",
         unit_label: "session",
+        unit_label_imperial: None,
         life_minutes_per_unit: 0.0,
         minutes_per_unit: 5.0,
         category: PresetCategory::Tobacco,
@@ -405,6 +432,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         id: "cannabis-joint",
         name: "Cannabis joints",
         unit_label: "joint",
+        unit_label_imperial: None,
         life_minutes_per_unit: 0.0,
         minutes_per_unit: 10.0,
         category: PresetCategory::Cannabis,
@@ -500,5 +528,25 @@ mod tests {
                 assert!(p.life_minutes_per_unit >= 0.0, "{}", p.id);
             }
         }
+    }
+
+    #[test]
+    fn labels_with_metric_amounts_have_an_imperial_alternative() {
+        for p in habit_presets() {
+            if p.unit_label.contains(" g)") || p.unit_label.contains(" ml)") {
+                let imperial = p
+                    .unit_label_imperial
+                    .unwrap_or_else(|| panic!("{} has no imperial label", p.id));
+                assert!(
+                    !imperial.contains(" g") && !imperial.contains(" ml"),
+                    "{}: {imperial}",
+                    p.id
+                );
+            }
+        }
+        let by_id = |id: &str| habit_presets().iter().find(|p| p.id == id).unwrap();
+        assert_eq!(by_id("sugary-soda").unit_label, "can (355 ml)");
+        assert_eq!(by_id("sugary-soda").unit_label_imperial, Some("can (12 fl oz)"));
+        assert_eq!(by_id("hot-dog").unit_label_imperial, Some("hot dog in bun (5 oz)"));
     }
 }

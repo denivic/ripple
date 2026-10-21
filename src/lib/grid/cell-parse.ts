@@ -1,3 +1,4 @@
+import { formatClockTime } from "../charts/format";
 import type { CellValue, EditableColumnKey } from "./types";
 
 /** Parses free-typed or pasted cell text into a typed value, or reports why
@@ -25,7 +26,7 @@ export function formatCell(column: EditableColumnKey, value: CellValue, habitNam
       return habitName ?? "";
     case "occurredAt": {
       const d = value as Date;
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${formatClockTime(d)}`;
     }
     case "quantity":
       return String(value);
@@ -36,17 +37,34 @@ export function formatCell(column: EditableColumnKey, value: CellValue, habitNam
   }
 }
 
+/** Time of day in either clock style — "13:05", "13:05:30", "1:05 PM",
+ * "1:05pm" — whatever the time-format setting, so pasted text always works. */
+const TIME = String.raw`(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp])\.?[Mm]\.?)?`;
+
+/** 24-hour hour from a matched hour and optional AM/PM letter, or null when
+ * a 12-hour hour is out of range. */
+function toHour24(h: string | undefined, period: string | undefined): number | null {
+  const hour = Number(h ?? 0);
+  if (!period) return hour;
+  if (hour < 1 || hour > 12) return null;
+  return (hour % 12) + (period.toLowerCase() === "p" ? 12 : 0);
+}
+
 function parseDateCell(text: string): Date | null {
   const trimmed = text.trim();
-  const isoLike = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  const isoLike = trimmed.match(new RegExp(`^(\\d{4})-(\\d{2})-(\\d{2})(?:[ T]${TIME})?$`));
   if (isoLike) {
-    const [, y, mo, d, h, mi, s] = isoLike;
-    return new Date(Number(y), Number(mo) - 1, Number(d), Number(h ?? 0), Number(mi ?? 0), Number(s ?? 0));
+    const [, y, mo, d, h, mi, s, period] = isoLike;
+    const hour = toHour24(h, period);
+    if (hour === null) return null;
+    return new Date(Number(y), Number(mo) - 1, Number(d), hour, Number(mi ?? 0), Number(s ?? 0));
   }
-  const slashLike = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  const slashLike = trimmed.match(new RegExp(`^(\\d{1,2})/(\\d{1,2})/(\\d{4})(?:\\s+${TIME})?$`));
   if (slashLike) {
-    const [, mo, d, y, h, mi] = slashLike;
-    return new Date(Number(y), Number(mo) - 1, Number(d), Number(h ?? 0), Number(mi ?? 0));
+    const [, mo, d, y, h, mi, s, period] = slashLike;
+    const hour = toHour24(h, period);
+    if (hour === null) return null;
+    return new Date(Number(y), Number(mo) - 1, Number(d), hour, Number(mi ?? 0), Number(s ?? 0));
   }
   return null;
 }
@@ -73,7 +91,7 @@ export function parseCell(
     }
     case "occurredAt": {
       const date = parseDateCell(text);
-      if (!date) return { ok: false, error: "Expected a date like 2026-03-14 08:05" };
+      if (!date) return { ok: false, error: "Expected a date like 2026-03-14 13:05 or 2026-03-14 1:05 PM" };
       return { ok: true, value: date };
     }
     case "quantity": {

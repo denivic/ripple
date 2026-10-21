@@ -1,4 +1,4 @@
-import type { HabitPreset, PresetCategory } from "$lib/ipc";
+import type { HabitPreset, PresetCategory, SettingsDto } from "$lib/ipc";
 
 /** Display order and labels for the add-habit preset picker's groups. */
 export const PRESET_CATEGORIES: { category: PresetCategory; label: string }[] = [
@@ -48,4 +48,10 @@ export function formatPresetSource(preset: HabitPreset): string | null {
   if (!preset.sourceTitle) return null;
   const year = preset.year !== null ? ` (${preset.year})` : "";
   return `Source: ${preset.sourceTitle}${year} · confidence: ${preset.confidence}`;
+}
+
+/** The unit label matching the Units setting: the imperial variant when the
+ * user chose imperial and the preset has one, otherwise the metric label. */
+export function presetUnitLabel(preset: HabitPreset, units: SettingsDto["weightUnit"]): string {
+  return units === "lb" && preset.unitLabelImperial ? preset.unitLabelImperial : preset.unitLabel;
 }

@@ -6,6 +6,7 @@
   import Field from "$lib/ui/Field.svelte";
   import Sheet from "$lib/ui/Sheet.svelte";
   import Toggle from "$lib/ui/Toggle.svelte";
+  import TimeField from "$lib/ui/TimeField.svelte";
   import EmailSettings from "$lib/ui/EmailSettings.svelte";
   import {
     commands,
@@ -314,7 +315,6 @@
     void saveNotifications(on ? { quietStart: "22:00", quietEnd: "07:00" } : { quietStart: null, quietEnd: null });
   }
 
-  // `<input type="time">` reports "" while half-typed; only save complete values.
   function saveTime(field: "reminderTime" | "weeklyTime" | "streakAlertTime" | "quietStart" | "quietEnd", v: string): void {
     if (/^\d{2}:\d{2}$/.test(v)) void saveNotifications({ [field]: v });
   }
@@ -387,14 +387,25 @@
         />
         <Field
           type="select"
-          label="Weight unit"
+          label="Time format"
+          value={settingsStore.data.timeFormat}
+          options={[
+            { value: "24h", label: "24-hour (13:00)" },
+            { value: "12h", label: "12-hour (1:00 PM)" },
+          ]}
+          oninput={(v) => saveGeneral({ timeFormat: v as SettingsDto["timeFormat"] })}
+        />
+        <!-- Stored as the weight unit (kg/lb), which predates the wider setting. -->
+        <Field
+          type="select"
+          label="Units"
           value={settingsStore.data.weightUnit}
           options={[
-            { value: "kg", label: "Kilograms" },
-            { value: "lb", label: "Pounds" },
+            { value: "kg", label: "Metric (kg, g, ml)" },
+            { value: "lb", label: "Imperial (lb, oz, fl oz)" },
           ]}
           oninput={(v) => saveGeneral({ weightUnit: v as SettingsDto["weightUnit"] })}
-          hint="Used for the Profile page's weight field."
+          hint="Used for the Profile page's weight field and preset serving sizes."
         />
         {#key currencySelectKey}
           <Field
@@ -525,8 +536,7 @@
 
         <h3>Schedule</h3>
         <div class="form">
-          <Field
-            type="time"
+          <TimeField
             label="Daily reminder"
             value={notifications.reminderTime}
             oninput={(v) => saveTime("reminderTime", v)}
@@ -538,14 +548,12 @@
             options={weekdayOptions}
             oninput={(v) => void saveNotifications({ weeklyDay: v as NotificationSettingsDto["weeklyDay"] })}
           />
-          <Field
-            type="time"
+          <TimeField
             label="Weekly summary time"
             value={notifications.weeklyTime}
             oninput={(v) => saveTime("weeklyTime", v)}
           />
-          <Field
-            type="time"
+          <TimeField
             label="Streak alert"
             value={notifications.streakAlertTime}
             oninput={(v) => saveTime("streakAlertTime", v)}
@@ -571,9 +579,8 @@
             onchange={setQuietHours}
           />
           {#if notifications.quietStart !== null && notifications.quietEnd !== null}
-            <Field type="time" label="From" value={notifications.quietStart} oninput={(v) => saveTime("quietStart", v)} />
-            <Field
-              type="time"
+            <TimeField label="From" value={notifications.quietStart} oninput={(v) => saveTime("quietStart", v)} />
+            <TimeField
               label="Until"
               value={notifications.quietEnd}
               oninput={(v) => saveTime("quietEnd", v)}
@@ -607,7 +614,6 @@
           </Button>
         </div>
 
-        <h3>Email</h3>
         <div class="email-settings" onfocusout={refreshEmailStatus}>
           <EmailSettings />
         </div>

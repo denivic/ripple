@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use super::error::DbError;
 
-const CURRENT_VERSION: i32 = 7;
+const CURRENT_VERSION: i32 = 8;
 
 /// Versioned via `PRAGMA user_version` rather than a migrations table — the
 /// whole schema lives in this file for now, so there's nothing a table would
@@ -29,6 +29,9 @@ pub fn run(conn: &Connection) -> Result<(), DbError> {
     }
     if version < 7 {
         migrate_v7(conn)?;
+    }
+    if version < 8 {
+        migrate_v8(conn)?;
     }
     conn.pragma_update(None, "user_version", CURRENT_VERSION)?;
     Ok(())
@@ -203,6 +206,17 @@ fn migrate_v7(conn: &Connection) -> Result<(), DbError> {
     Ok(())
 }
 
+fn migrate_v8(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "
+        -- Clock style for displayed times: '24h' | '12h'. Existing rows get
+        -- 24-hour, the app's default.
+        ALTER TABLE settings ADD COLUMN time_format TEXT NOT NULL DEFAULT '24h';
+        ",
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,7 +340,7 @@ mod tests {
 
         run(&conn).unwrap();
 
-        assert_eq!(user_version(&conn), 7);
+        assert_eq!(user_version(&conn), CURRENT_VERSION);
         let habits: i64 = conn
             .query_row("SELECT COUNT(*) FROM habits", [], |row| row.get(0))
             .unwrap();
@@ -364,5 +378,37 @@ mod tests {
             .query_row("SELECT provider FROM email_settings", [], |row| row.get(0))
             .unwrap();
         assert_eq!(provider, "none");
+    }
+
+    #[test]
+    fn v8_adds_time_format_defaulting_to_24h_on_an_existing_v7_row() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+        migrate_v7(&conn).unwrap();
+        conn.pragma_update(None, "user_version", 7).unwrap();
+        conn.execute(
+            "INSERT INTO settings (id, weight_unit, currency) VALUES (1, 'lb', 'EUR')",
+            [],
+        )
+        .unwrap();
+
+        run(&conn).unwrap();
+
+        assert_eq!(user_version(&conn), CURRENT_VERSION);
+        let (time_format, weight_unit, currency): (String, String, String) = conn
+            .query_row(
+                "SELECT time_format, weight_unit, currency FROM settings WHERE id = 1",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(time_format, "24h");
+        assert_eq!(weight_unit, "lb");
+        assert_eq!(currency, "EUR");
     }
 }

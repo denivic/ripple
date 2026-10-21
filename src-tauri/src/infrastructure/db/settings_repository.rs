@@ -4,7 +4,8 @@ use rusqlite::{params, OptionalExtension};
 
 use crate::domain::repository::{RepoResult, SettingsRepository};
 use crate::domain::settings::{
-    is_currency_code, Settings, StartupRoute, WeekStart, WeightUnit, DEFAULT_CURRENCY,
+    is_currency_code, Settings, StartupRoute, TimeFormat, WeekStart, WeightUnit,
+    DEFAULT_CURRENCY,
 };
 
 use super::Db;
@@ -70,12 +71,27 @@ fn weight_unit_from_str(s: &str) -> Option<WeightUnit> {
     }
 }
 
+fn time_format_to_str(t: TimeFormat) -> &'static str {
+    match t {
+        TimeFormat::H24 => "24h",
+        TimeFormat::H12 => "12h",
+    }
+}
+
+fn time_format_from_str(s: &str) -> Option<TimeFormat> {
+    match s {
+        "24h" => Some(TimeFormat::H24),
+        "12h" => Some(TimeFormat::H12),
+        _ => None,
+    }
+}
+
 impl SettingsRepository for SqliteSettingsRepository {
     fn get(&self) -> RepoResult<Settings> {
         let conn = self.db.lock()?;
         let settings = conn
             .query_row(
-                "SELECT startup_route, week_start, weight_unit, theme_name, custom_theme_json, currency
+                "SELECT startup_route, week_start, weight_unit, theme_name, custom_theme_json, currency, time_format
                  FROM settings WHERE id = 1",
                 [],
                 |row| {
@@ -83,11 +99,13 @@ impl SettingsRepository for SqliteSettingsRepository {
                     let week_start: String = row.get(1)?;
                     let weight_unit: String = row.get(2)?;
                     let currency: String = row.get(5)?;
+                    let time_format: String = row.get(6)?;
                     Ok(Settings {
                         startup_route: startup_route_from_str(&startup_route)
                             .unwrap_or(StartupRoute::Today),
                         week_start: week_start_from_str(&week_start).unwrap_or(WeekStart::Monday),
                         weight_unit: weight_unit_from_str(&weight_unit).unwrap_or(WeightUnit::Kg),
+                        time_format: time_format_from_str(&time_format).unwrap_or(TimeFormat::H24),
                         theme_name: row.get(3)?,
                         custom_theme_json: row.get(4)?,
                         currency: if is_currency_code(&currency) {
@@ -105,15 +123,16 @@ impl SettingsRepository for SqliteSettingsRepository {
     fn save(&self, settings: &Settings) -> RepoResult<()> {
         let conn = self.db.lock()?;
         conn.execute(
-            "INSERT INTO settings (id, startup_route, week_start, weight_unit, theme_name, custom_theme_json, currency)
-             VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)
+            "INSERT INTO settings (id, startup_route, week_start, weight_unit, theme_name, custom_theme_json, currency, time_format)
+             VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT(id) DO UPDATE SET
                startup_route = excluded.startup_route,
                week_start = excluded.week_start,
                weight_unit = excluded.weight_unit,
                theme_name = excluded.theme_name,
                custom_theme_json = excluded.custom_theme_json,
-               currency = excluded.currency",
+               currency = excluded.currency,
+               time_format = excluded.time_format",
             params![
                 startup_route_to_str(settings.startup_route),
                 week_start_to_str(settings.week_start),
@@ -121,6 +140,7 @@ impl SettingsRepository for SqliteSettingsRepository {
                 settings.theme_name,
                 settings.custom_theme_json,
                 settings.currency,
+                time_format_to_str(settings.time_format),
             ],
         )?;
         Ok(())
@@ -148,6 +168,7 @@ mod tests {
             startup_route: StartupRoute::Ledger,
             week_start: WeekStart::Sunday,
             weight_unit: WeightUnit::Lb,
+            time_format: TimeFormat::H12,
             theme_name: None,
             custom_theme_json: Some(r#"{"schemaVersion":1}"#.to_string()),
             currency: "EUR".to_string(),
@@ -185,5 +206,30 @@ mod tests {
             .execute("UPDATE settings SET currency = 'nope' WHERE id = 1", [])
             .unwrap();
         assert_eq!(repo.get().unwrap().currency, DEFAULT_CURRENCY);
+    }
+
+    #[test]
+    fn time_format_round_trips_both_ways() {
+        let repo = repo();
+        for time_format in [TimeFormat::H12, TimeFormat::H24] {
+            repo.save(&Settings {
+                time_format,
+                ..Default::default()
+            })
+            .unwrap();
+            assert_eq!(repo.get().unwrap().time_format, time_format);
+        }
+    }
+
+    #[test]
+    fn malformed_stored_time_format_falls_back_to_24h() {
+        let repo = repo();
+        repo.save(&Settings::default()).unwrap();
+        repo.db
+            .lock()
+            .unwrap()
+            .execute("UPDATE settings SET time_format = 'nope' WHERE id = 1", [])
+            .unwrap();
+        assert_eq!(repo.get().unwrap().time_format, TimeFormat::H24);
     }
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import Tooltip from "./Tooltip.svelte";
-  import { formatDuration } from "./format";
+  import { formatClock, formatDuration, formatHourLabel } from "./format";
 
   interface Props {
     /** [weekday 0=Mon..6=Sun][hour 0..23], matching the Rust domain's
@@ -34,7 +34,7 @@
   <svg width={LABEL_WIDTH + 24 * (CELL + GAP)} height={TOP + 7 * (CELL + GAP)}>
     {#each HOUR_TICKS as hour (hour)}
       <text x={LABEL_WIDTH + hour * (CELL + GAP) + CELL / 2} y={TOP - 5} class="col-label">
-        {String(hour).padStart(2, "0")}
+        {formatHourLabel(hour)}
       </text>
     {/each}
     {#each WEEKDAY_LABELS as label, row (label)}
@@ -50,7 +50,7 @@
           rx="3"
           fill={intensity(value)}
           role="img"
-          aria-label="{WEEKDAY_LABELS[weekday]} {String(hour).padStart(2, '0')}:00: {formatDuration(value)}"
+          aria-label="{WEEKDAY_LABELS[weekday]} {formatClock(hour, 0)}: {formatDuration(value)}"
           onpointerenter={() => (hovered = { weekday, hour, value })}
           onpointerleave={() => (hovered = null)}
         />
@@ -64,7 +64,7 @@
   >
     {#if hovered}
       <strong>{formatDuration(hovered.value)}</strong>
-      <span class="muted">{WEEKDAY_LABELS[hovered.weekday]} {String(hovered.hour).padStart(2, "0")}:00</span>
+      <span class="muted">{WEEKDAY_LABELS[hovered.weekday]} {formatClock(hovered.hour, 0)}</span>
     {/if}
   </Tooltip>
 </div>
@@ -72,6 +72,10 @@
 <style>
   .matrix-wrap {
     position: relative;
+  }
+  svg {
+    /* A 12-hour "11 PM" label is wider than its column at the right edge. */
+    overflow: visible;
   }
   rect {
     transition: opacity 100ms ease-out;

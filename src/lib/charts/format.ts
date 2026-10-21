@@ -79,6 +79,38 @@ export function formatMoneyCompactParts(amount: number, currency = currencySourc
   return { unit, unitPosition: unitIndex < firstNumberIndex ? "before" : "after", figure };
 }
 
+export type TimeFormat = "24h" | "12h";
+
+/** Where the clock helpers get the 24h/12h choice — installed by the settings
+ * store, like `setCurrencySource`, so times re-render when it changes. */
+let timeFormatSource: () => TimeFormat = () => "24h";
+
+export function setTimeFormatSource(source: () => TimeFormat): void {
+  timeFormatSource = source;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+/** A time of day: "13:05" in 24-hour mode, "1:05 PM" in 12-hour mode. */
+export function formatClock(hours: number, minutes: number, format = timeFormatSource()): string {
+  if (format === "24h") return `${pad2(hours)}:${pad2(minutes)}`;
+  const period = hours < 12 ? "AM" : "PM";
+  return `${hours % 12 || 12}:${pad2(minutes)} ${period}`;
+}
+
+/** `formatClock` for a Date's local time. */
+export function formatClockTime(date: Date, format = timeFormatSource()): string {
+  return formatClock(date.getHours(), date.getMinutes(), format);
+}
+
+/** A bare hour for compact axis labels: "06" in 24-hour mode, "6 AM" in 12-hour. */
+export function formatHourLabel(hour: number, format = timeFormatSource()): string {
+  if (format === "24h") return pad2(hour);
+  return `${hour % 12 || 12} ${hour < 12 ? "AM" : "PM"}`;
+}
+
 export function formatPercent(fraction: number, digits = 0): string {
   // Fixed locale (unlike formatCalendarDate): some locales insert a space
   // before "%", which reads poorly as a compact chart/badge value.
@@ -99,8 +131,6 @@ export function formatCalendarDate(date: Date): string {
 
 const formatMillisecond = timeFormat(".%L");
 const formatSecond = timeFormat(":%S");
-const formatMinuteTick = timeFormat("%H:%M");
-const formatHourTick = timeFormat("%H:%M");
 const formatDayTick = timeFormat("%b %d");
 const formatWeekTick = timeFormat("%b %d");
 const formatMonthTick = timeFormat("%b");
@@ -118,16 +148,15 @@ export function multiScaleTimeFormat(date: Date): string {
       ? formatMillisecond
       : timeMinute(date) < date
         ? formatSecond
-        : timeHour(date) < date
-          ? formatMinuteTick
-          : timeDay(date) < date
-            ? formatHourTick
-            : timeMonth(date) < date
-              ? timeWeek(date) < date
-                ? formatDayTick
-                : formatWeekTick
-              : timeYear(date) < date
-                ? formatMonthTick
-                : formatYearTick;
+        : timeDay(date) < date
+          ? // Minute and hour ticks are times of day, so they follow the setting.
+            (d: Date) => formatClockTime(d)
+          : timeMonth(date) < date
+            ? timeWeek(date) < date
+              ? formatDayTick
+              : formatWeekTick
+            : timeYear(date) < date
+              ? formatMonthTick
+              : formatYearTick;
   return format(date);
 }

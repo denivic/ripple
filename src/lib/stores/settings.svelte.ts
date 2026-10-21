@@ -1,4 +1,4 @@
-import { setCurrencySource } from "$lib/charts/format";
+import { setCurrencySource, setTimeFormatSource } from "$lib/charts/format";
 import { commands, onDataChanged, type SettingsDto } from "$lib/ipc";
 import { builtInThemes, themeStore, validateTheme, type Theme } from "$lib/theme";
 import type { UnlistenFn } from "@tauri-apps/api/event";
@@ -7,6 +7,7 @@ const DEFAULT_SETTINGS: SettingsDto = {
   startupRoute: "today",
   weekStart: "monday",
   weightUnit: "kg",
+  timeFormat: "24h",
   themeName: null,
   customThemeJson: null,
   currency: "USD",
@@ -101,3 +102,5 @@ export const settingsStore = new SettingsStore();
 // Reading `data.currency` inside formatMoney's default keeps money labels
 // reactive to the setting without each call site passing it.
 setCurrencySource(() => settingsStore.data.currency);
+// Same for the clock helpers and the 24h/12h choice.
+setTimeFormatSource(() => settingsStore.data.timeFormat);

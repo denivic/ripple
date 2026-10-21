@@ -15,7 +15,7 @@ use crate::domain::points::{AwardKind, PointAward};
 use crate::domain::presets::{HabitPreset, PresetCategory, PresetConfidence};
 use crate::domain::{
     is_currency_code, Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute,
-    WeekStart, WeightUnit,
+    TimeFormat, WeekStart, WeightUnit,
 };
 use crate::infrastructure::db::codec::{format_date, format_datetime, parse_date, parse_datetime};
 use crate::infrastructure::import::Sheet;
@@ -163,6 +163,7 @@ pub struct SettingsDto {
     pub startup_route: String,
     pub week_start: String,
     pub weight_unit: String,
+    pub time_format: String,
     pub theme_name: Option<String>,
     pub custom_theme_json: Option<String>,
     pub currency: String,
@@ -187,6 +188,11 @@ impl From<Settings> for SettingsDto {
             weight_unit: match s.weight_unit {
                 WeightUnit::Kg => "kg",
                 WeightUnit::Lb => "lb",
+            }
+            .to_string(),
+            time_format: match s.time_format {
+                TimeFormat::H24 => "24h",
+                TimeFormat::H12 => "12h",
             }
             .to_string(),
             theme_name: s.theme_name,
@@ -218,6 +224,11 @@ impl TryFrom<SettingsDto> for Settings {
             "lb" => WeightUnit::Lb,
             other => return Err(format!("unknown weight unit '{other}'")),
         };
+        let time_format = match d.time_format.as_str() {
+            "24h" => TimeFormat::H24,
+            "12h" => TimeFormat::H12,
+            other => return Err(format!("unknown time format '{other}'")),
+        };
         if !is_currency_code(&d.currency) {
             return Err(format!("invalid currency code '{}'", d.currency));
         }
@@ -225,6 +236,7 @@ impl TryFrom<SettingsDto> for Settings {
             startup_route,
             week_start,
             weight_unit,
+            time_format,
             theme_name: d.theme_name,
             custom_theme_json: d.custom_theme_json,
             currency: d.currency,
@@ -403,6 +415,8 @@ pub struct HabitPresetDto {
     pub id: String,
     pub name: String,
     pub unit_label: String,
+    /// Imperial variant of `unit_label`; null when it reads the same.
+    pub unit_label_imperial: Option<String>,
     /// Positive = life lost per unit, negative = life gained.
     pub life_minutes_per_unit: f64,
     /// Editable default for time spent per unit, not a research figure.
@@ -423,6 +437,7 @@ impl From<&HabitPreset> for HabitPresetDto {
             id: p.id.to_string(),
             name: p.name.to_string(),
             unit_label: p.unit_label.to_string(),
+            unit_label_imperial: p.unit_label_imperial.map(str::to_string),
             life_minutes_per_unit: p.life_minutes_per_unit,
             minutes_per_unit: p.minutes_per_unit,
             category: match p.category {
@@ -892,6 +907,7 @@ mod tests {
         assert_eq!(json["confidence"], "insufficient");
         assert!(json["sourceUrl"].is_null());
         assert!(json["year"].is_null());
+        assert!(json["unitLabelImperial"].is_null());
     }
 
     #[test]

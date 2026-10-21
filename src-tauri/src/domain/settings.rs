@@ -21,11 +21,18 @@ pub enum WeightUnit {
     Lb,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeFormat {
+    H24,
+    H12,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     pub startup_route: StartupRoute,
     pub week_start: WeekStart,
     pub weight_unit: WeightUnit,
+    pub time_format: TimeFormat,
     /// Name of the active built-in theme, when the user hasn't diverged from
     /// a preset. Cleared whenever `custom_theme_json` is set, and vice versa.
     pub theme_name: Option<String>,
@@ -50,6 +57,7 @@ impl Default for Settings {
             startup_route: StartupRoute::Today,
             week_start: WeekStart::Monday,
             weight_unit: WeightUnit::Kg,
+            time_format: TimeFormat::H24,
             theme_name: None,
             custom_theme_json: None,
             currency: DEFAULT_CURRENCY.to_string(),

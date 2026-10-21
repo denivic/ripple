@@ -1,5 +1,17 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { formatDuration, formatMoney, formatMoneyCompact, formatMoneyCompactParts, formatSignedPercent, multiScaleTimeFormat, setCurrencySource } from "./format";
+import {
+  formatClock,
+  formatClockTime,
+  formatDuration,
+  formatHourLabel,
+  formatMoney,
+  formatMoneyCompact,
+  formatMoneyCompactParts,
+  formatSignedPercent,
+  multiScaleTimeFormat,
+  setCurrencySource,
+  setTimeFormatSource,
+} from "./format";
 
 describe("formatDuration", () => {
   it("formats zero as 0m", () => {
@@ -60,6 +72,51 @@ describe("multiScaleTimeFormat", () => {
 
   it("shows hours:minutes for an intraday tick", () => {
     expect(multiScaleTimeFormat(new Date(2026, 2, 14, 8, 30))).toBe("08:30");
+  });
+
+  it("follows the 12-hour setting for intraday ticks", () => {
+    setTimeFormatSource(() => "12h");
+    try {
+      expect(multiScaleTimeFormat(new Date(2026, 2, 14, 13, 0))).toBe("1:00 PM");
+      expect(multiScaleTimeFormat(new Date(2026, 2, 14))).toBe("Mar 14");
+    } finally {
+      setTimeFormatSource(() => "24h");
+    }
+  });
+});
+
+describe("formatClock", () => {
+  afterEach(() => setTimeFormatSource(() => "24h"));
+
+  it("defaults to 24-hour", () => {
+    expect(formatClock(13, 5)).toBe("13:05");
+  });
+
+  it("formats 24-hour midnight and noon", () => {
+    expect(formatClock(0, 0, "24h")).toBe("00:00");
+    expect(formatClock(12, 0, "24h")).toBe("12:00");
+  });
+
+  it("formats 12-hour times", () => {
+    expect(formatClock(13, 5, "12h")).toBe("1:05 PM");
+    expect(formatClock(9, 30, "12h")).toBe("9:30 AM");
+  });
+
+  it("formats 12-hour midnight and noon", () => {
+    expect(formatClock(0, 0, "12h")).toBe("12:00 AM");
+    expect(formatClock(12, 0, "12h")).toBe("12:00 PM");
+  });
+
+  it("reads the installed source when no format is passed", () => {
+    setTimeFormatSource(() => "12h");
+    expect(formatClock(23, 59)).toBe("11:59 PM");
+    expect(formatClockTime(new Date(2026, 2, 14, 0, 7))).toBe("12:07 AM");
+  });
+
+  it("labels bare hours in both modes", () => {
+    expect(formatHourLabel(6, "24h")).toBe("06");
+    expect(formatHourLabel(0, "12h")).toBe("12 AM");
+    expect(formatHourLabel(18, "12h")).toBe("6 PM");
   });
 });
 
