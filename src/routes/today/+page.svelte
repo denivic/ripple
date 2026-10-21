@@ -101,6 +101,22 @@
     return String(Number(years.toFixed(1)));
   }
 
+  // Badge on a habit card: this week's quantity against last week's. Green
+  // when a harmful habit falls or a good one rises; hidden without last week.
+  function habitTrend(habitId: number, lifeMinutesPerUnit: number) {
+    const trend = todayStore.summary?.habitWeekTrends.find((t) => t.habitId === habitId);
+    if (!trend || trend.previousWeekQuantity <= 0) return null;
+    const change = (trend.currentWeekQuantity - trend.previousWeekQuantity) / trend.previousWeekQuantity;
+    const arrow = change < 0 ? "↓" : change > 0 ? "↑" : "→";
+    const tone =
+      change === 0 || lifeMinutesPerUnit === 0
+        ? "neutral"
+        : (lifeMinutesPerUnit > 0) === (change < 0)
+          ? "good"
+          : "bad";
+    return { text: `${arrow} ${formatPercent(Math.abs(change))} vs last week`, tone };
+  }
+
   async function logOne(habitId: number) {
     await todayStore.log(habitId, 1);
   }
@@ -131,6 +147,30 @@
         title={formatMoney(todayStore.summary.moneySpent)}
       />
       <StatTile label="Share of today's waking hours" value={formatPercent(todayStore.summary.wakingLifeShareToday)} />
+      <StatTile
+        label="Clean streak"
+        value="{todayStore.summary.currentStreakDays} {todayStore.summary.currentStreakDays === 1 ? 'day' : 'days'}"
+      />
+      {#if todayStore.summary.weekChangeFraction === null}
+        <StatTile label="This week vs last" value="Not enough history yet — check back after a week." />
+      {:else}
+        {@const change = todayStore.summary.weekChangeFraction}
+        {@const deltaMinutes = todayStore.summary.currentWeekLifeMinutes - todayStore.summary.previousWeekLifeMinutes}
+        {@const regained = todayStore.summary.monthsRegained}
+        {@const expectancy = todayStore.summary.lifeExpectancyAge}
+        <StatTile
+          label="This week vs last"
+          value="{change < 0 ? '↓' : change > 0 ? '↑' : '→'} {formatPercent(Math.abs(change))} life lost"
+          delta={{
+            text: `${formatDuration(Math.abs(deltaMinutes))} ${deltaMinutes > 0 ? "more" : "less"} than last week`,
+            direction: change < 0 ? "down" : change > 0 ? "up" : "flat",
+            goodDirection: "down",
+          }}
+          hint={change < 0 && regained !== null && regained > 0 && expectancy !== null
+            ? `At this pace that's ~${regained.toFixed(1)} months of waking life back by age ${formatAge(expectancy)}.`
+            : undefined}
+        />
+      {/if}
       {#if todayStore.summary.opportunityCost !== null}
         {@const cost = formatMoneyCompactParts(todayStore.summary.opportunityCost)}
         <StatTile
@@ -166,9 +206,13 @@
     {:else}
       <div class="target-grid">
         {#each habitsStore.items as habit (habit.id)}
+          {@const trend = habitTrend(habit.id, habit.lifeMinutesPerUnit)}
           <button class="tap-target" onclick={() => logOne(habit.id)}>
             <span class="name">{habit.name}</span>
             <span class="unit">+1 {habit.unitLabel}</span>
+            {#if trend}
+              <span class="trend {trend.tone}">{trend.text}</span>
+            {/if}
           </button>
         {/each}
       </div>
@@ -326,6 +370,18 @@
   .tap-target .unit {
     font-size: 0.8125rem;
     color: var(--accent-base);
+  }
+  .tap-target .trend {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+  }
+  /* Fixed status hues, matching StatTile's deltas — never themed. */
+  .tap-target .trend.good {
+    color: #0ca30c;
+  }
+  .tap-target .trend.bad {
+    color: #d03b3b;
   }
 
   .empty {

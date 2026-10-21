@@ -4,11 +4,12 @@ use time::{Date, Duration};
 
 use super::day_range;
 use crate::domain::cost_model::{
-    money_spent_for_entry, opportunity_cost_for_entry, projected_waking_months_lost,
+    self, money_spent_for_entry, opportunity_cost_for_entry, projected_waking_months_lost,
     time_loss_for_entry, waking_life_share,
 };
+use crate::domain::entry::Entry;
 use crate::domain::habit::{Habit, HabitId};
-use crate::domain::projections::daily_series;
+use crate::domain::projections::{current_streak_days, daily_series};
 use crate::domain::repository::{EntryRepository, HabitRepository, ProfileRepository, RepoResult};
 
 pub struct TodaySummary {
@@ -25,6 +26,27 @@ pub struct TodaySummary {
     pub projection_window_days: u32,
     pub average_daily_life_minutes: f64,
     pub life_expectancy_age: Option<f64>,
+    /// Consecutive clean days ending today (today counts while it's clean).
+    pub current_streak_days: i64,
+    /// Net life-minutes over the 7 days before `current_week_life_minutes`.
+    pub previous_week_life_minutes: f64,
+    /// Net life-minutes over today and the 6 days before it.
+    pub current_week_life_minutes: f64,
+    /// (current − previous) / |previous|; positive means more life lost.
+    /// `None` when the previous week nets to zero.
+    pub week_change_fraction: Option<f64>,
+    /// Projected waking months lost at last week's daily pace minus at this
+    /// week's; positive means months won back. `None` without a complete profile.
+    pub months_regained: Option<f64>,
+    /// Quantity logged per habit in the same two 7-day windows, for every
+    /// habit with an entry in either.
+    pub habit_week_trends: Vec<HabitWeekTrend>,
+}
+
+pub struct HabitWeekTrend {
+    pub habit_id: HabitId,
+    pub current_week_quantity: f64,
+    pub previous_week_quantity: f64,
 }
 
 /// The projection averages the last 30 days, today included...
@@ -32,6 +54,9 @@ const PROJECTION_WINDOW_DAYS: u32 = 30;
 /// ...or the days since the first entry if that's fewer, but never under a
 /// week, so a single entry on day one isn't treated as a daily habit.
 const MIN_PROJECTION_WINDOW_DAYS: u32 = 7;
+/// Week-over-week comparison windows: today and the 6 days before, against
+/// the 7 days before those.
+const WEEK_DAYS: i64 = 7;
 
 pub fn compute_today_summary(
     habit_repo: &dyn HabitRepository,
@@ -68,12 +93,41 @@ pub fn compute_today_summary(
         }
     }
 
+    // Only time actually spent fits in today's waking hours; life-shortening
+    // minutes are a lifetime estimate, not hours out of this day.
     let waking_life_share_today =
-        waking_life_share(time_spent_minutes + life_shortened_minutes, 1.0, &profile);
+        waking_life_share(time_spent_minutes, 1.0, &profile).clamp(0.0, 1.0);
     let (window_days, average_daily_life_minutes) =
         average_daily_life_minutes(entry_repo, &habits, today)?;
     let projected_waking_months_lost =
         projected_waking_months_lost(average_daily_life_minutes, &profile, today);
+    let current_streak_days = current_streak(entry_repo, &habits, today)?;
+
+    let previous_start = today - Duration::days(2 * WEEK_DAYS - 1);
+    let current_start = today - Duration::days(WEEK_DAYS - 1);
+    let (range_start, _) = day_range(previous_start);
+    let (_, range_end) = day_range(today);
+    let fortnight = entry_repo.list_between(range_start, range_end)?;
+    let net_life_minutes = |start: Date, end: Date| -> f64 {
+        daily_series(&fortnight, &habits, start, end)
+            .iter()
+            .map(|d| d.loss.life_shortened_minutes)
+            .sum()
+    };
+    let previous_week_life_minutes =
+        net_life_minutes(previous_start, current_start - Duration::days(1));
+    let current_week_life_minutes = net_life_minutes(current_start, today);
+    let week_change_fraction = (previous_week_life_minutes.abs() > f64::EPSILON).then(|| {
+        (current_week_life_minutes - previous_week_life_minutes) / previous_week_life_minutes.abs()
+    });
+    // The local `projected_waking_months_lost` above shadows the function.
+    let months_lost_at = |life_minutes: f64| {
+        cost_model::projected_waking_months_lost(life_minutes / WEEK_DAYS as f64, &profile, today)
+    };
+    let months_regained = months_lost_at(previous_week_life_minutes)
+        .zip(months_lost_at(current_week_life_minutes))
+        .map(|(previous, current)| previous - current);
+    let habit_week_trends = habit_week_trends(&fortnight, &habits, current_start);
 
     Ok(TodaySummary {
         time_spent_minutes,
@@ -85,7 +139,60 @@ pub fn compute_today_summary(
         projection_window_days: window_days,
         average_daily_life_minutes,
         life_expectancy_age: profile.life_expectancy_years,
+        current_streak_days,
+        previous_week_life_minutes,
+        current_week_life_minutes,
+        week_change_fraction,
+        months_regained,
+        habit_week_trends,
     })
+}
+
+/// The streak is counted over the whole history, from the first entry up to
+/// today; with nothing logged at all there is no streak yet.
+fn current_streak(
+    entry_repo: &dyn EntryRepository,
+    habits: &HashMap<HabitId, Habit>,
+    today: Date,
+) -> RepoResult<i64> {
+    let entries = entry_repo.list_all()?;
+    let Some(first) = entries.iter().map(|e| e.occurred_at.date()).min() else {
+        return Ok(0);
+    };
+    if first > today {
+        return Ok(0);
+    }
+    Ok(current_streak_days(&daily_series(
+        &entries, habits, first, today,
+    )))
+}
+
+/// Per-habit quantity in the current week (from `current_start` on) and the
+/// week before, from entries already limited to those two weeks.
+fn habit_week_trends(
+    entries: &[Entry],
+    habits: &HashMap<HabitId, Habit>,
+    current_start: Date,
+) -> Vec<HabitWeekTrend> {
+    let mut by_habit: HashMap<HabitId, HabitWeekTrend> = HashMap::new();
+    for entry in entries {
+        if !habits.contains_key(&entry.habit_id) {
+            continue;
+        }
+        let slot = by_habit.entry(entry.habit_id).or_insert(HabitWeekTrend {
+            habit_id: entry.habit_id,
+            current_week_quantity: 0.0,
+            previous_week_quantity: 0.0,
+        });
+        if entry.occurred_at.date() >= current_start {
+            slot.current_week_quantity += entry.quantity;
+        } else {
+            slot.previous_week_quantity += entry.quantity;
+        }
+    }
+    let mut out: Vec<HabitWeekTrend> = by_habit.into_values().collect();
+    out.sort_by_key(|t| t.habit_id.0);
+    out
 }
 
 /// Net life-minutes per day (losses minus gains) averaged over the
@@ -131,7 +238,6 @@ fn average_daily_life_minutes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entry::Entry;
     use crate::domain::habit::Habit;
     use crate::domain::profile::Profile;
     use crate::infrastructure::db::{
@@ -373,5 +479,109 @@ mod tests {
 
         assert!((summary.average_daily_life_minutes + 65.0).abs() < 1e-9);
         assert!(summary.projected_waking_months_lost.unwrap() < 0.0);
+    }
+
+    #[test]
+    fn life_shortened_does_not_inflate_the_waking_share() {
+        let f = Fixture::aged_28();
+        let joint = f.habit(55.0);
+        // 30 joints: 1650 min of life shortened, far beyond 960 waking minutes,
+        // but no time spent.
+        f.log(joint, TODAY, 30.0);
+
+        let summary = f.summary(TODAY);
+
+        assert_eq!(summary.life_shortened_minutes, 1650.0);
+        assert_eq!(summary.waking_life_share_today, 0.0);
+    }
+
+    #[test]
+    fn the_waking_share_is_time_spent_over_waking_minutes_capped_at_one() {
+        let f = Fixture::aged_28();
+        let mut habit = Habit::new("Scrolling", "session");
+        habit.minutes_per_unit = 48.0;
+        let scroll = f.habit_repo.insert(&habit).unwrap();
+        f.log(scroll, TODAY, 2.0);
+        assert!((f.summary(TODAY).waking_life_share_today - 96.0 / 960.0).abs() < 1e-9);
+
+        f.log(scroll, TODAY, 100.0);
+        assert_eq!(f.summary(TODAY).waking_life_share_today, 1.0);
+    }
+
+    #[test]
+    fn the_streak_runs_from_the_last_harmful_day_and_ignores_good_habits() {
+        let f = Fixture::aged_28();
+        let joint = f.habit(55.0);
+        let walk = f.habit(-120.0);
+        f.log(joint, TODAY - Duration::days(5), 1.0);
+        f.log(walk, TODAY - Duration::days(2), 1.0);
+        f.log(walk, TODAY, 1.0);
+
+        assert_eq!(f.summary(TODAY).current_streak_days, 5);
+    }
+
+    #[test]
+    fn an_empty_history_has_no_streak() {
+        assert_eq!(Fixture::aged_28().summary(TODAY).current_streak_days, 0);
+    }
+
+    #[test]
+    fn this_week_is_compared_with_the_week_before() {
+        let f = Fixture::aged_28();
+        let joint = f.habit(55.0);
+        // Previous week (7..13 days ago): 10 joints; this week: 6.
+        f.log(joint, TODAY - Duration::days(13), 4.0);
+        f.log(joint, TODAY - Duration::days(7), 6.0);
+        f.log(joint, TODAY - Duration::days(6), 2.0);
+        f.log(joint, TODAY, 4.0);
+        // Outside both windows.
+        f.log(joint, TODAY - Duration::days(14), 50.0);
+
+        let summary = f.summary(TODAY);
+
+        assert_eq!(summary.previous_week_life_minutes, 550.0);
+        assert_eq!(summary.current_week_life_minutes, 330.0);
+        assert!((summary.week_change_fraction.unwrap() + 0.4).abs() < 1e-9);
+        let regained = summary.months_regained.unwrap();
+        let expected = projected_waking_months_lost(550.0 / 7.0, &profile(&f), TODAY).unwrap()
+            - projected_waking_months_lost(330.0 / 7.0, &profile(&f), TODAY).unwrap();
+        assert!(regained > 0.0);
+        assert!((regained - expected).abs() < 1e-9);
+
+        let trends = &summary.habit_week_trends;
+        assert_eq!(trends.len(), 1);
+        assert_eq!(trends[0].habit_id, joint);
+        assert_eq!(trends[0].previous_week_quantity, 10.0);
+        assert_eq!(trends[0].current_week_quantity, 6.0);
+    }
+
+    #[test]
+    fn the_week_change_is_none_without_a_previous_week() {
+        let f = Fixture::aged_28();
+        let joint = f.habit(55.0);
+        f.log(joint, TODAY, 1.0);
+
+        let summary = f.summary(TODAY);
+
+        assert_eq!(summary.previous_week_life_minutes, 0.0);
+        assert_eq!(summary.week_change_fraction, None);
+        assert_eq!(summary.habit_week_trends[0].previous_week_quantity, 0.0);
+    }
+
+    #[test]
+    fn months_regained_is_none_without_a_complete_profile() {
+        let db = Arc::new(Db::open_in_memory().unwrap());
+        let habit_repo = SqliteHabitRepository::new(Arc::clone(&db));
+        let entry_repo = SqliteEntryRepository::new(Arc::clone(&db));
+        let profile_repo = SqliteProfileRepository::new(Arc::clone(&db));
+
+        let summary =
+            compute_today_summary(&habit_repo, &entry_repo, &profile_repo, TODAY).unwrap();
+
+        assert_eq!(summary.months_regained, None);
+    }
+
+    fn profile(f: &Fixture) -> Profile {
+        f.profile_repo.get().unwrap()
     }
 }

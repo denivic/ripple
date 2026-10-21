@@ -93,6 +93,23 @@ export interface TodaySummaryDto {
   /** Net life-minutes per day over the window; negative = net gain. */
   averageDailyLifeMinutes: number;
   lifeExpectancyAge: number | null;
+  /** Consecutive clean days (no harmful entries) ending today. */
+  currentStreakDays: number;
+  /** Net life-minutes over the 7 days before the current week. */
+  previousWeekLifeMinutes: number;
+  /** Net life-minutes over today and the 6 days before it. */
+  currentWeekLifeMinutes: number;
+  /** (current − previous) / |previous|; positive = more life lost. Null when the previous week is 0. */
+  weekChangeFraction: number | null;
+  /** Waking months won back at this week's pace vs last week's. Null without a complete profile. */
+  monthsRegained: number | null;
+  habitWeekTrends: HabitWeekTrendDto[];
+}
+
+export interface HabitWeekTrendDto {
+  habitId: number;
+  currentWeekQuantity: number;
+  previousWeekQuantity: number;
 }
 
 export type PresetCategory = "tobacco" | "alcohol" | "cannabis" | "food" | "drink" | "sedentary" | "gain";

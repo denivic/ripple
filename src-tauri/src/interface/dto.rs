@@ -5,7 +5,7 @@ use crate::application::compute_series::{
 };
 use crate::application::convert_currency::CurrencyConversion;
 use crate::application::import_workbook::{ImportPreview, ImportSummary};
-use crate::application::today_summary::TodaySummary;
+use crate::application::today_summary::{HabitWeekTrend, TodaySummary};
 use crate::domain::presets::{HabitPreset, PresetCategory, PresetConfidence};
 use crate::domain::{
     is_currency_code, Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute,
@@ -343,6 +343,30 @@ pub struct TodaySummaryDto {
     pub projection_window_days: u32,
     pub average_daily_life_minutes: f64,
     pub life_expectancy_age: Option<f64>,
+    pub current_streak_days: i64,
+    pub previous_week_life_minutes: f64,
+    pub current_week_life_minutes: f64,
+    pub week_change_fraction: Option<f64>,
+    pub months_regained: Option<f64>,
+    pub habit_week_trends: Vec<HabitWeekTrendDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HabitWeekTrendDto {
+    pub habit_id: i64,
+    pub current_week_quantity: f64,
+    pub previous_week_quantity: f64,
+}
+
+impl From<HabitWeekTrend> for HabitWeekTrendDto {
+    fn from(t: HabitWeekTrend) -> Self {
+        Self {
+            habit_id: t.habit_id.0,
+            current_week_quantity: t.current_week_quantity,
+            previous_week_quantity: t.previous_week_quantity,
+        }
+    }
 }
 
 impl From<TodaySummary> for TodaySummaryDto {
@@ -357,6 +381,12 @@ impl From<TodaySummary> for TodaySummaryDto {
             projection_window_days: s.projection_window_days,
             average_daily_life_minutes: s.average_daily_life_minutes,
             life_expectancy_age: s.life_expectancy_age,
+            current_streak_days: s.current_streak_days,
+            previous_week_life_minutes: s.previous_week_life_minutes,
+            current_week_life_minutes: s.current_week_life_minutes,
+            week_change_fraction: s.week_change_fraction,
+            months_regained: s.months_regained,
+            habit_week_trends: s.habit_week_trends.into_iter().map(Into::into).collect(),
         }
     }
 }

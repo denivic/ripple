@@ -282,10 +282,10 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         note: "Per day of eating at least five servings; based on blood vitamin C as a marker, so treat as rough.",
     },
     HabitPreset {
-        id: "coffee-2-3-cups",
-        name: "Coffee (2-3 cups)",
-        unit_label: "day with 2-3 cups",
-        life_minutes_per_unit: -30.0,
+        id: "coffee-cup",
+        name: "Coffee",
+        unit_label: "cup",
+        life_minutes_per_unit: -12.0,
         minutes_per_unit: 0.0,
         category: PresetCategory::Gain,
         source_title: Some("Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment (Spiegelhalter, BMJ 2012;345:e8223, Table 1)"),
@@ -293,8 +293,8 @@ static HABIT_PRESETS: &[HabitPreset] = &[
         year: Some(2012),
         confidence: PresetConfidence::Low,
         derived: true,
-        derivation: Some("Table 1: coffee intake 2-3 cups/day = +1 microlife; -1 x 30 min = -30 min (gain)."),
-        note: "An association from observational studies, not proof that coffee extends life.",
+        derivation: Some("Table 1: coffee intake 2-3 cups/day = +1 microlife; -1 x 30 min = -30 min per day (gain); / 2.5 cups (midpoint) = -12 min per cup."),
+        note: "An association from observational studies, not proof that coffee extends life. The benefit is modelled for up to about 3 cups a day; more cups aren't shown to add more.",
     },
     HabitPreset {
         id: "nuts",
@@ -471,7 +471,7 @@ mod tests {
         let by_id = |id: &str| habit_presets().iter().find(|p| p.id == id).unwrap();
         assert_eq!(by_id("cigarette").minutes_per_unit, 5.0);
         assert_eq!(by_id("tv-2h").minutes_per_unit, 120.0);
-        assert_eq!(by_id("coffee-2-3-cups").minutes_per_unit, 0.0);
+        assert_eq!(by_id("coffee-cup").minutes_per_unit, 0.0);
     }
 
     #[test]

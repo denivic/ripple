@@ -35,6 +35,9 @@ pub struct DailyTotal {
     pub date: Date,
     pub loss: TimeLoss,
     pub money: f64,
+    /// Entries whose habit costs life (life minutes per unit > 0); good
+    /// habits never count here, so they can't break a streak.
+    pub harmful_entries: u32,
 }
 
 impl DailyTotal {
@@ -43,6 +46,7 @@ impl DailyTotal {
             date,
             loss: TimeLoss::zero(),
             money: 0.0,
+            harmful_entries: 0,
         }
     }
 
@@ -53,6 +57,9 @@ impl DailyTotal {
     fn add_entry(&mut self, habit: &Habit, entry: &Entry) {
         self.loss = self.loss.add(time_loss_for_entry(habit, entry));
         self.money += money_spent_for_entry(habit, entry);
+        if habit.life_minutes_per_unit > 0.0 {
+            self.harmful_entries += 1;
+        }
     }
 }
 
@@ -106,19 +113,21 @@ pub fn daily_series(
     out
 }
 
-fn is_clean(d: &DailyTotal) -> bool {
-    d.loss.total_minutes() == 0.0 && d.money == 0.0
+/// A clean day has no harmful entries. Logging only good habits (exercise,
+/// coffee) keeps it clean, whatever time or money they took.
+pub fn is_clean_day(d: &DailyTotal) -> bool {
+    d.harmful_entries == 0
 }
 
 pub fn current_streak_days(daily: &[DailyTotal]) -> i64 {
-    daily.iter().rev().take_while(|d| is_clean(d)).count() as i64
+    daily.iter().rev().take_while(|d| is_clean_day(d)).count() as i64
 }
 
 pub fn longest_streak_days(daily: &[DailyTotal]) -> i64 {
     let mut longest = 0i64;
     let mut current = 0i64;
     for d in daily {
-        if is_clean(d) {
+        if is_clean_day(d) {
             current += 1;
             longest = longest.max(current);
         } else {
@@ -282,6 +291,27 @@ mod tests {
         // day5 clean, day4 dirty -> current streak is 1 (just day5).
         assert_eq!(current_streak_days(&series), 1);
         assert_eq!(longest_streak_days(&series), 2);
+    }
+
+    #[test]
+    fn good_habit_entries_keep_a_streak_alive() {
+        let mut coffee = Habit::new("Coffee", "cup");
+        coffee.id = Some(HabitId(2));
+        coffee.life_minutes_per_unit = -5.0;
+        coffee.minutes_per_unit = 10.0;
+        coffee.cost_per_unit = 3.0;
+        let mut hs = habits();
+        hs.insert(HabitId(2), coffee);
+        let entries = vec![
+            entry(date!(2026 - 01 - 01), 9, 1.0),
+            Entry::new(HabitId(2), datetime!(2026-01-03 08:00), 2.0),
+            Entry::new(HabitId(2), datetime!(2026-01-05 08:00), 1.0),
+        ];
+        let series = daily_series(&entries, &hs, date!(2026 - 01 - 01), date!(2026 - 01 - 05));
+        assert!(is_clean_day(&series[2]));
+        assert!(!is_clean_day(&series[0]));
+        assert_eq!(current_streak_days(&series), 4);
+        assert_eq!(longest_streak_days(&series), 4);
     }
 
     #[test]
