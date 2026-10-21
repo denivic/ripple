@@ -15,7 +15,10 @@ class SettingsStore {
   loading = $state(true);
   error = $state<string | null>(null);
 
-  #unlisten: UnlistenFn | null = null;
+  // Reference-counted: the layout and several pages each mount/unmount the
+  // store, and a page leaving must not tear down the layout's listener.
+  #refs = 0;
+  #listening: Promise<UnlistenFn> | null = null;
 
   async load(): Promise<void> {
     this.loading = true;
@@ -31,15 +34,25 @@ class SettingsStore {
   }
 
   async mount(): Promise<void> {
-    await this.load();
-    this.#unlisten ??= await onDataChanged((event) => {
+    this.#refs += 1;
+    // Assigned synchronously so concurrent mounts share one subscription.
+    const listening = (this.#listening ??= onDataChanged((event) => {
       if (event.scope === "settings") void this.load();
-    });
+    }).catch((e) => {
+      this.#listening = null;
+      throw e;
+    }));
+    await this.load();
+    await listening;
   }
 
   unmount(): void {
-    this.#unlisten?.();
-    this.#unlisten = null;
+    if (this.#refs === 0) return;
+    this.#refs -= 1;
+    if (this.#refs > 0 || !this.#listening) return;
+    const listening = this.#listening;
+    this.#listening = null;
+    void listening.then((unlisten) => unlisten()).catch(() => {});
   }
 
   /** Resolves the persisted theme choice to an actual `Theme` and applies it

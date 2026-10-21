@@ -12,14 +12,23 @@
   let draft = $state<Theme>(themeStore.current);
   let dataDir = $state("");
   let status = $state<string | null>(null);
+  let loadError = $state<string | null>(null);
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(() => {
     (async () => {
-      await settingsStore.mount();
-      draft = structuredClone(themeStore.current);
-      dataDir = await commands.getDataDir();
-      ready = true;
+      try {
+        await settingsStore.mount();
+        // `themeStore.current` is a $state proxy, which structuredClone
+        // rejects (DataCloneError) — snapshot it instead.
+        draft = $state.snapshot(themeStore.current);
+        dataDir = await commands.getDataDir();
+      } catch (e) {
+        loadError = `Couldn't load settings: ${String(e)}`;
+      } finally {
+        // Render whatever did load rather than sitting on "Loading…".
+        ready = true;
+      }
     })();
     return () => {
       settingsStore.unmount();
@@ -76,7 +85,7 @@
 
   async function selectBuiltIn(theme: Theme): Promise<void> {
     clearTimeout(saveTimer);
-    draft = structuredClone(theme);
+    draft = $state.snapshot(theme);
     await settingsStore.applyBuiltIn(theme);
   }
 
@@ -158,6 +167,9 @@
 
 {#if status}
   <div class="banner status">{status}</div>
+{/if}
+{#if loadError}
+  <div class="banner error">{loadError}</div>
 {/if}
 {#if settingsStore.error}
   <div class="banner error">{settingsStore.error}</div>
