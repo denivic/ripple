@@ -89,6 +89,11 @@
     closeAddHabit();
   }
 
+  // Life expectancy can be fractional (e.g. 81.5); whole ages print bare.
+  function formatAge(years: number): string {
+    return String(Number(years.toFixed(1)));
+  }
+
   async function logOne(habitId: number) {
     await todayStore.log(habitId, 1);
   }
@@ -116,10 +121,13 @@
       {#if todayStore.summary.opportunityCost !== null}
         <StatTile label="Opportunity cost" value={formatMoney(todayStore.summary.opportunityCost)} />
       {/if}
-      {#if todayStore.summary.remainingWakingLifeMonthsAtTodaysRate !== null}
+      {#if todayStore.summary.projectedWakingMonthsLost !== null && todayStore.summary.lifeExpectancyAge !== null}
+        {@const months = todayStore.summary.projectedWakingMonthsLost}
+        {@const age = formatAge(todayStore.summary.lifeExpectancyAge)}
         <StatTile
-          label="At this rate"
-          value="{todayStore.summary.remainingWakingLifeMonthsAtTodaysRate.toFixed(1)} months of remaining waking life"
+          label="At your {todayStore.summary.projectionWindowDays}-day pace"
+          value="~{Math.abs(months).toFixed(1)} months of waking life {months < 0 ? 'gained' : 'lost'} by age {age}"
+          hint="An estimate assuming you keep this average daily pace until age {age}, counted in waking hours (24 − your sleep hours from Profile). It is not how long you have left."
         />
       {/if}
     </section>

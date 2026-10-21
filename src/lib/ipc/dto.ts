@@ -84,7 +84,14 @@ export interface TodaySummaryDto {
   moneySpent: number;
   opportunityCost: number | null;
   wakingLifeShareToday: number;
-  remainingWakingLifeMonthsAtTodaysRate: number | null;
+  /** Months of waking life lost by `lifeExpectancyAge` at the window's
+   *  average daily pace; negative = months gained. Null without a complete profile. */
+  projectedWakingMonthsLost: number | null;
+  /** Days the daily average is taken over: 30, or fewer (min 7) for a short history. */
+  projectionWindowDays: number;
+  /** Net life-minutes per day over the window; negative = net gain. */
+  averageDailyLifeMinutes: number;
+  lifeExpectancyAge: number | null;
 }
 
 export type PresetCategory = "tobacco" | "alcohol" | "cannabis" | "food" | "drink" | "sedentary" | "gain";

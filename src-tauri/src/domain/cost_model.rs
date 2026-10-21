@@ -97,25 +97,25 @@ pub fn remaining_life_years(profile: &Profile, as_of: Date) -> Option<f64> {
     Some((life_expectancy_years - age_years).max(0.0))
 }
 
-/// Expresses `life_shortened_minutes_per_year` as a share of the profile's
-/// remaining *waking* years, itself re-expressed as months of that remaining
-/// waking life — the "2.1 months of your remaining waking life" framing.
-pub fn remaining_waking_life_months_at_rate(
-    life_shortened_minutes_per_year: f64,
+/// Months of waking life lost by the life-expectancy age if
+/// `average_daily_life_minutes` repeated every day until then: the average
+/// day's share of waking time, times the months remaining. A projection, not
+/// a count of what's left — "~5 months of waking life lost by age 80".
+/// Signed: a negative average (gain habits outweighing the rest) comes back
+/// negative, meaning months gained. `None` without birth date and life
+/// expectancy.
+pub fn projected_waking_months_lost(
+    average_daily_life_minutes: f64,
     profile: &Profile,
     as_of: Date,
 ) -> Option<f64> {
-    let remaining_years = remaining_life_years(profile, as_of)?;
-    let waking_minutes_per_year = profile.waking_hours_per_day() * 60.0 * 365.2425;
-    if waking_minutes_per_year <= 0.0 {
+    let remaining_months = remaining_life_years(profile, as_of)? * 12.0;
+    let waking_minutes_per_day = profile.waking_hours_per_day() * 60.0;
+    if waking_minutes_per_day <= 0.0 {
         return Some(0.0);
     }
-    let remaining_waking_minutes = remaining_years * waking_minutes_per_year;
-    if remaining_waking_minutes <= 0.0 {
-        return Some(0.0);
-    }
-    let share = life_shortened_minutes_per_year / waking_minutes_per_year;
-    Some(share * remaining_years * 12.0)
+    let daily_share = average_daily_life_minutes / waking_minutes_per_day;
+    Some(daily_share * remaining_months)
 }
 
 /// Widmark equation: peak BAC from distribution, minus hepatic elimination

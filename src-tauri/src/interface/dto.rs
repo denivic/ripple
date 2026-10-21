@@ -336,7 +336,10 @@ pub struct TodaySummaryDto {
     pub money_spent: f64,
     pub opportunity_cost: Option<f64>,
     pub waking_life_share_today: f64,
-    pub remaining_waking_life_months_at_todays_rate: Option<f64>,
+    pub projected_waking_months_lost: Option<f64>,
+    pub projection_window_days: u32,
+    pub average_daily_life_minutes: f64,
+    pub life_expectancy_age: Option<f64>,
 }
 
 impl From<TodaySummary> for TodaySummaryDto {
@@ -347,8 +350,10 @@ impl From<TodaySummary> for TodaySummaryDto {
             money_spent: s.money_spent,
             opportunity_cost: s.opportunity_cost,
             waking_life_share_today: s.waking_life_share_today,
-            remaining_waking_life_months_at_todays_rate: s
-                .remaining_waking_life_months_at_todays_rate,
+            projected_waking_months_lost: s.projected_waking_months_lost,
+            projection_window_days: s.projection_window_days,
+            average_daily_life_minutes: s.average_daily_life_minutes,
+            life_expectancy_age: s.life_expectancy_age,
         }
     }
 }

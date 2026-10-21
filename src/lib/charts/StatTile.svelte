@@ -11,10 +11,12 @@
     label: string;
     value: string;
     delta?: Delta;
+    /** A short caveat under the value, for figures that need their assumptions spelled out. */
+    hint?: string;
     trend?: Snippet;
   }
 
-  let { label, value, delta, trend }: Props = $props();
+  let { label, value, delta, hint, trend }: Props = $props();
 
   const deltaTone = $derived(
     !delta || delta.direction === "flat" ? "neutral" : delta.direction === delta.goodDirection ? "good" : "bad",
@@ -26,6 +28,9 @@
   <span class="value">{value}</span>
   {#if delta}
     <span class="delta {deltaTone}">{delta.text}</span>
+  {/if}
+  {#if hint}
+    <span class="hint">{hint}</span>
   {/if}
   {#if trend}
     <div class="trend">{@render trend()}</div>
@@ -69,6 +74,12 @@
     color: #d03b3b;
   }
   .delta.neutral {
+    color: var(--text-tertiary);
+  }
+
+  .hint {
+    font-size: 0.75rem;
+    line-height: 1.4;
     color: var(--text-tertiary);
   }
 
