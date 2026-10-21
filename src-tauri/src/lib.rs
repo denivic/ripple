@@ -22,6 +22,13 @@ pub fn run() {
             None,
         ))
         .setup(|app| {
+            // Fresh installs start in the system region's currency.
+            if let Some(code) = sys_locale::get_locale()
+                .as_deref()
+                .and_then(domain::currency::currency_for_locale)
+            {
+                domain::currency::set_system_currency(code);
+            }
             let app_data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
             let db_path = app_data_dir.join("ripple.sqlite");

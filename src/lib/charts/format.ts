@@ -124,22 +124,32 @@ export function formatSignedPercent(fraction: number, digits = 0): string {
   return formatted;
 }
 
-/** Locale-respecting, for prose and tooltips (e.g. "Mar 14, 2026"). */
+const SHORT_MONTH = new Intl.DateTimeFormat(undefined, { month: "short" });
+
+/**
+ * "14 Mar": day first, month name in the system language. Assembled by hand
+ * because Intl would put the month first for an en-US system locale.
+ */
+export function formatDayMonth(date: Date): string {
+  return `${date.getDate()} ${SHORT_MONTH.format(date)}`;
+}
+
+/** For prose and tooltips: "14 Mar 2026". */
 export function formatCalendarDate(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
+  return `${formatDayMonth(date)} ${date.getFullYear()}`;
 }
 
 const formatMillisecond = timeFormat(".%L");
 const formatSecond = timeFormat(":%S");
-const formatDayTick = timeFormat("%b %d");
-const formatWeekTick = timeFormat("%b %d");
-const formatMonthTick = timeFormat("%b");
+const formatDayTick = formatDayMonth;
+const formatWeekTick = formatDayMonth;
+const formatMonthTick = (date: Date) => SHORT_MONTH.format(date);
 const formatYearTick = timeFormat("%Y");
 
 /**
  * The canonical d3 "multi-scale" time format: picks the most specific unit
  * that actually changed at this tick, coarsening automatically as the axis
- * spans more time — so a daily axis shows "Mar 14" while a yearly one shows
+ * spans more time — so a daily axis shows "14 Mar" while a yearly one shows
  * just the year, with no manual scale-switching logic at call sites.
  */
 export function multiScaleTimeFormat(date: Date): string {

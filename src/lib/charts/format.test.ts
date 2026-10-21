@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  formatCalendarDate,
+  formatDayMonth,
   formatClock,
   formatClockTime,
   formatDuration,
@@ -66,8 +68,8 @@ describe("multiScaleTimeFormat", () => {
     expect(multiScaleTimeFormat(new Date(2026, 2, 1))).toBe("Mar");
   });
 
-  it("shows month + day for an ordinary day", () => {
-    expect(multiScaleTimeFormat(new Date(2026, 2, 14))).toBe("Mar 14");
+  it("shows day + month for an ordinary day", () => {
+    expect(multiScaleTimeFormat(new Date(2026, 2, 14))).toBe("14 Mar");
   });
 
   it("shows hours:minutes for an intraday tick", () => {
@@ -78,7 +80,7 @@ describe("multiScaleTimeFormat", () => {
     setTimeFormatSource(() => "12h");
     try {
       expect(multiScaleTimeFormat(new Date(2026, 2, 14, 13, 0))).toBe("1:00 PM");
-      expect(multiScaleTimeFormat(new Date(2026, 2, 14))).toBe("Mar 14");
+      expect(multiScaleTimeFormat(new Date(2026, 2, 14))).toBe("14 Mar");
     } finally {
       setTimeFormatSource(() => "24h");
     }
@@ -186,5 +188,15 @@ describe("formatMoneyCompactParts", () => {
 
   it("keeps a trillion short", () => {
     expect(formatMoneyCompactParts(1_000_000_000_000, "DKK").figure.length).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("formatDayMonth / formatCalendarDate", () => {
+  const month = (d: Date) => new Intl.DateTimeFormat(undefined, { month: "short" }).format(d);
+
+  it("puts the day before the month regardless of system locale", () => {
+    const date = new Date(2026, 2, 14);
+    expect(formatDayMonth(date)).toBe(`14 ${month(date)}`);
+    expect(formatCalendarDate(date)).toBe(`14 ${month(date)} 2026`);
   });
 });

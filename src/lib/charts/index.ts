@@ -1,6 +1,7 @@
 export { horizontalBarPath, verticalBarPath } from "./bar-path";
 export {
   formatCalendarDate,
+  formatDayMonth,
   formatClock,
   formatClockTime,
   formatDuration,

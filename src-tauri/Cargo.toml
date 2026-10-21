@@ -38,6 +38,7 @@ csv = "1"
 snap = "1"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 # Blocking HTTP for the exchange-rate fetch; rustls so no system OpenSSL.
+sys-locale = "=0.3.2"
 ureq = { version = "=3.4.2", default-features = false, features = ["rustls"] }
 # Notification email over SMTP: blocking transport + message builder,
 # rustls only (no native-tls/OpenSSL).

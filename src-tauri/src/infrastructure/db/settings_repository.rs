@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use rusqlite::{params, OptionalExtension};
 
+use crate::domain::currency::default_currency;
 use crate::domain::repository::{RepoResult, SettingsRepository};
 use crate::domain::settings::{
     is_currency_code, Settings, StartupRoute, TimeFormat, WeekStart, WeightUnit,
-    DEFAULT_CURRENCY,
 };
 
 use super::Db;
@@ -111,7 +111,7 @@ impl SettingsRepository for SqliteSettingsRepository {
                         currency: if is_currency_code(&currency) {
                             currency
                         } else {
-                            DEFAULT_CURRENCY.to_string()
+                            default_currency().to_string()
                         },
                     })
                 },
@@ -205,7 +205,7 @@ mod tests {
             .unwrap()
             .execute("UPDATE settings SET currency = 'nope' WHERE id = 1", [])
             .unwrap();
-        assert_eq!(repo.get().unwrap().currency, DEFAULT_CURRENCY);
+        assert_eq!(repo.get().unwrap().currency, default_currency());
     }
 
     #[test]

@@ -43,8 +43,6 @@ pub struct Settings {
     pub currency: String,
 }
 
-pub const DEFAULT_CURRENCY: &str = "USD";
-
 /// Shape check only (three ASCII uppercase letters) — whether the code is a
 /// currency `Intl` can format is the frontend's concern.
 pub fn is_currency_code(s: &str) -> bool {
@@ -60,7 +58,7 @@ impl Default for Settings {
             time_format: TimeFormat::H24,
             theme_name: None,
             custom_theme_json: None,
-            currency: DEFAULT_CURRENCY.to_string(),
+            currency: super::currency::default_currency().to_string(),
         }
     }
 }

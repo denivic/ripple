@@ -94,7 +94,7 @@ static HABIT_PRESETS: &[HabitPreset] = &[
     },
     HabitPreset {
         id: "alcohol-us-standard-drink",
-        name: "Alcoholic drinks (US standard)",
+        name: "Alcoholic drinks (14 g standard drink)",
         unit_label: "standard drink (14 g alcohol)",
         unit_label_imperial: None,
         life_minutes_per_unit: 21.0,

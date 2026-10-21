@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rusqlite::{params, OptionalExtension};
 
 use crate::domain::repository::{CurrencyConversionRepository, RepoResult, RepositoryError};
-use crate::domain::settings::DEFAULT_CURRENCY;
+use crate::domain::currency::default_currency;
 
 use super::Db;
 
@@ -30,7 +30,7 @@ impl CurrencyConversionRepository for SqliteCurrencyConversionRepository {
                 row.get(0)
             })
             .optional()?
-            .unwrap_or_else(|| DEFAULT_CURRENCY.to_string());
+            .unwrap_or_else(|| default_currency().to_string());
         if current != from {
             return Err(RepositoryError(format!(
                 "amounts are stored in {current}, not {from}; reload Settings and try again"
