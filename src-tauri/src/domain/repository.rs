@@ -3,6 +3,7 @@ use time::PrimitiveDateTime;
 
 use super::entry::{Entry, EntryId};
 use super::habit::{Habit, HabitId};
+use super::points::{AwardKind, PointAward};
 use super::profile::Profile;
 use super::settings::Settings;
 
@@ -54,4 +55,16 @@ pub trait CurrencyConversionRepository {
     /// if the stored currency is still `from`, so a stale caller can't
     /// convert the same amounts twice. Returns how many habits were updated.
     fn convert_amounts(&self, from: &str, to: &str, rate: f64) -> RepoResult<usize>;
+}
+
+/// The points ledger. Rows are only ever added: there is deliberately no
+/// update or delete, because awards are final.
+pub trait PointAwardRepository {
+    /// Stores each award whose `award_key` isn't already in the ledger and
+    /// returns how many were new, so re-running an evaluation is a no-op.
+    fn insert_new(&self, awards: &[PointAward]) -> RepoResult<usize>;
+    fn total_points(&self) -> RepoResult<i64>;
+    /// Most recently recorded first.
+    fn recent(&self, limit: usize) -> RepoResult<Vec<PointAward>>;
+    fn list_by_kind(&self, kind: AwardKind) -> RepoResult<Vec<PointAward>>;
 }

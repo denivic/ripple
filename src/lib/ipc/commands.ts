@@ -8,6 +8,7 @@ import type {
   ImportPreviewDto,
   ImportSummaryDto,
   ProfileDto,
+  ProgressDto,
   SettingsDto,
   TimelineDto,
   TodaySummaryDto,
@@ -44,6 +45,8 @@ export const commands = {
   computeTimeline: (start: string, end: string) => invoke<TimelineDto>("compute_timeline", { start, end }),
   computeTodaySummary: (today: string) => invoke<TodaySummaryDto>("compute_today_summary", { today }),
   getHabitPresets: () => invoke<HabitPresetDto[]>("get_habit_presets"),
+  /** Also evaluates and records any newly earned points first. */
+  getProgress: (today: string) => invoke<ProgressDto>("get_progress", { today }),
 
   previewImport: (path: string) => invoke<ImportPreviewDto>("preview_import", { path }),
   applyImport: (path: string, sheetIndex: number, mapping: ColumnMappingDto) =>

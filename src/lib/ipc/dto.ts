@@ -167,3 +167,38 @@ export interface ImportSummaryDto {
   entriesCreated: number;
   rowErrors: RowErrorDto[];
 }
+
+export type PointAwardKind = "logged" | "clean" | "habit-improved" | "streak" | "milestone";
+
+export interface PointAwardDto {
+  id: number;
+  kind: PointAwardKind;
+  points: number;
+  /** YYYY-MM-DD the award was earned for. */
+  awardedFor: string;
+  /** Display text, e.g. "Clean day". */
+  label: string;
+}
+
+export interface MilestoneDto {
+  key: string;
+  title: string;
+  description: string;
+  points: number;
+  /** YYYY-MM-DD, or null while still locked. */
+  achievedOn: string | null;
+}
+
+export interface ProgressDto {
+  totalPoints: number;
+  level: string;
+  levelIndex: number;
+  /** Null at the top level. */
+  nextLevel: string | null;
+  pointsToNext: number | null;
+  /** 0..1 share of the way to the next level. */
+  levelProgressFraction: number;
+  /** Newest first, at most 20. */
+  recentAwards: PointAwardDto[];
+  milestones: MilestoneDto[];
+}

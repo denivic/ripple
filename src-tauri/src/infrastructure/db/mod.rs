@@ -5,6 +5,7 @@ mod error;
 mod habit_repository;
 mod mapping_repository;
 mod migrations;
+mod point_award_repository;
 mod profile_repository;
 mod settings_repository;
 
@@ -18,6 +19,7 @@ pub use entry_repository::SqliteEntryRepository;
 pub use error::DbError;
 pub use habit_repository::SqliteHabitRepository;
 pub use mapping_repository::SqliteMappingRepository;
+pub use point_award_repository::SqlitePointAwardRepository;
 pub use profile_repository::SqliteProfileRepository;
 pub use settings_repository::SqliteSettingsRepository;
 
@@ -82,8 +84,8 @@ impl Db {
         Ok(())
     }
 
-    /// Erases every habit, entry, profile field, setting and saved import
-    /// mapping, keeping the schema. One transaction, so a failure leaves the
+    /// Erases every habit, entry, profile field, setting, saved import
+    /// mapping and point award, keeping the schema. One transaction, so a failure leaves the
     /// data untouched; clearing `sqlite_sequence` restarts ids from 1.
     pub fn reset(&self) -> RepoResult<()> {
         let mut guard = self.lock()?;
@@ -95,6 +97,7 @@ impl Db {
             DELETE FROM profile;
             DELETE FROM settings;
             DELETE FROM import_mappings;
+            DELETE FROM point_awards;
             DELETE FROM sqlite_sequence;
             ",
         )?;
@@ -164,15 +167,26 @@ mod tests {
     #[test]
     fn reset_erases_all_data_and_restarts_ids() {
         use crate::domain::habit::Habit;
-        use crate::domain::repository::{HabitRepository, SettingsRepository};
+        use crate::domain::points::{milestone_award, MILESTONE_FIRST_ENTRY};
+        use crate::domain::repository::{
+            HabitRepository, PointAwardRepository, SettingsRepository,
+        };
         use crate::domain::Settings;
         use habit_repository::SqliteHabitRepository;
+        use point_award_repository::SqlitePointAwardRepository;
         use settings_repository::SqliteSettingsRepository;
         use std::sync::Arc;
 
         let db = Arc::new(Db::open_in_memory().unwrap());
         let habits = SqliteHabitRepository::new(Arc::clone(&db));
         let settings = SqliteSettingsRepository::new(Arc::clone(&db));
+        let awards = SqlitePointAwardRepository::new(Arc::clone(&db));
+        awards
+            .insert_new(&[milestone_award(
+                MILESTONE_FIRST_ENTRY,
+                time::macros::date!(2026 - 10 - 20),
+            )])
+            .unwrap();
         habits
             .insert(&Habit::new("Coffee".to_string(), "cup".to_string()))
             .unwrap();
@@ -187,6 +201,8 @@ mod tests {
 
         assert!(habits.list(true).unwrap().is_empty());
         assert_eq!(settings.get().unwrap(), Settings::default());
+        assert_eq!(awards.total_points().unwrap(), 0);
+        assert!(awards.recent(20).unwrap().is_empty());
         let id = habits
             .insert(&Habit::new("Tea".to_string(), "cup".to_string()))
             .unwrap();

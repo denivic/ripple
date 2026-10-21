@@ -1,10 +1,12 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { progressStore } from "$lib/stores";
 
   const NAV_ITEMS = [
     { href: "/today", label: "Today", icon: "today" },
     { href: "/timeline", label: "Timeline", icon: "timeline" },
     { href: "/ledger", label: "Ledger", icon: "ledger" },
+    { href: "/progress", label: "Progress", icon: "progress" },
     { href: "/profile", label: "Profile", icon: "profile" },
     { href: "/settings", label: "Settings", icon: "settings" },
   ] as const;
@@ -32,6 +34,8 @@
     {:else if name === "profile"}
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+    {:else if name === "progress"}
+      <path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z" />
     {:else if name === "settings"}
       <line x1="4" y1="6" x2="20" y2="6" />
       <circle cx="9" cy="6" r="2" />
@@ -60,6 +64,21 @@
       </li>
     {/each}
   </ul>
+
+  {#if progressStore.data}
+    {@const p = progressStore.data}
+    <a class="level-badge" href="/progress" aria-label="{p.level}, {p.totalPoints} points. View progress">
+      <span class="level-row">
+        <span class="level-name">{p.level}</span>
+        <span class="level-points">{p.totalPoints.toLocaleString()} pts</span>
+      </span>
+      <span class="level-track" aria-hidden="true">
+        <span class="level-fill" style:width="{Math.round(p.levelProgressFraction * 100)}%"></span>
+      </span>
+      <!-- Non-blocking, self-clearing notice for newly earned points. -->
+      <span class="level-notice" aria-live="polite">{progressStore.notice ?? ""}</span>
+    </a>
+  {/if}
 </nav>
 
 <style>
@@ -122,6 +141,69 @@
   .nav-icon {
     display: inline-flex;
     color: currentColor;
+  }
+
+  .level-badge {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-top: 1rem;
+    padding: 0.625rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--line-hairline);
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: background-color 120ms ease-out;
+  }
+
+  .level-badge:hover {
+    background: color-mix(in oklch, white 6%, transparent);
+  }
+
+  .level-badge:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .level-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.8125rem;
+  }
+
+  .level-name {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .level-points {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .level-track {
+    height: 3px;
+    border-radius: 999px;
+    background: var(--chart-empty);
+    overflow: hidden;
+  }
+
+  .level-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent-base);
+    transition: width 300ms ease-out;
+  }
+
+  .level-notice {
+    min-height: 1em;
+    font-size: 0.75rem;
+    color: var(--accent-base);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .level-notice:empty {
+    display: none;
   }
 
   .nav-item:focus-visible {

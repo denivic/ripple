@@ -2,7 +2,7 @@
   import "../app.css";
   import { onMount } from "svelte";
   import { themeStore } from "$lib/theme/tokens.svelte";
-  import { settingsStore } from "$lib/stores";
+  import { progressStore, settingsStore } from "$lib/stores";
   import Sidebar from "$lib/ui/Sidebar.svelte";
 
   let { children } = $props();
@@ -12,9 +12,13 @@
     // then swaps in the persisted theme once the async load resolves.
     themeStore.mount();
     void settingsStore.mount();
+    // Mounted here, not per page: loading it is what evaluates and records
+    // points, on startup and after every change, wherever the user is.
+    void progressStore.mount();
     return () => {
       themeStore.unmount();
       settingsStore.unmount();
+      progressStore.unmount();
     };
   });
 </script>

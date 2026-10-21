@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use super::error::DbError;
 
-const CURRENT_VERSION: i32 = 5;
+const CURRENT_VERSION: i32 = 6;
 
 /// Versioned via `PRAGMA user_version` rather than a migrations table — the
 /// whole schema lives in this file for now, so there's nothing a table would
@@ -23,6 +23,9 @@ pub fn run(conn: &Connection) -> Result<(), DbError> {
     }
     if version < 5 {
         migrate_v5(conn)?;
+    }
+    if version < 6 {
+        migrate_v6(conn)?;
     }
     conn.pragma_update(None, "user_version", CURRENT_VERSION)?;
     Ok(())
@@ -125,6 +128,26 @@ fn migrate_v5(conn: &Connection) -> Result<(), DbError> {
     Ok(())
 }
 
+fn migrate_v6(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "
+        -- Points ledger. Append-only: `award_key` is unique so evaluating
+        -- the same history twice inserts nothing new (INSERT OR IGNORE),
+        -- and nothing ever deletes a row except a full reset.
+        CREATE TABLE point_awards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            award_key TEXT NOT NULL UNIQUE,
+            kind TEXT NOT NULL,
+            points INTEGER NOT NULL,
+            awarded_for TEXT NOT NULL,
+            detail TEXT,
+            created_at TEXT NOT NULL
+        );
+        ",
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,7 +207,7 @@ mod tests {
 
         run(&conn).unwrap();
 
-        assert_eq!(user_version(&conn), 5);
+        assert_eq!(user_version(&conn), CURRENT_VERSION);
         let (minutes_per_unit, life_minutes): (f64, f64) = conn
             .query_row(
                 "SELECT minutes_per_unit, life_minutes_per_unit FROM habits WHERE name = 'Cigarettes'",
@@ -194,5 +217,39 @@ mod tests {
             .unwrap();
         assert_eq!(minutes_per_unit, 0.0);
         assert_eq!(life_minutes, 20.0);
+    }
+
+    #[test]
+    fn v6_adds_an_empty_point_awards_ledger_keeping_existing_data() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        conn.pragma_update(None, "user_version", 5).unwrap();
+        conn.execute(
+            "INSERT INTO habits (name, unit_label) VALUES ('Coffee', 'cup')",
+            [],
+        )
+        .unwrap();
+
+        run(&conn).unwrap();
+
+        assert_eq!(user_version(&conn), 6);
+        let habits: i64 = conn
+            .query_row("SELECT COUNT(*) FROM habits", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(habits, 1);
+        let awards: i64 = conn
+            .query_row("SELECT COUNT(*) FROM point_awards", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(awards, 0);
+
+        let insert = "INSERT OR IGNORE INTO point_awards
+             (award_key, kind, points, awarded_for, created_at)
+             VALUES ('clean:2026-10-20', 'clean', 10, '2026-10-20', '2026-10-21T08:00:00')";
+        assert_eq!(conn.execute(insert, []).unwrap(), 1);
+        assert_eq!(conn.execute(insert, []).unwrap(), 0);
     }
 }

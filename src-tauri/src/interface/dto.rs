@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+use crate::application::award_points::{MilestoneStatus, Progress};
 use crate::application::compute_series::{
     DailyPoint, HabitBreakdownItem, PeriodCompareResult, TimelineResult,
 };
 use crate::application::convert_currency::CurrencyConversion;
 use crate::application::import_workbook::{ImportPreview, ImportSummary};
 use crate::application::today_summary::{HabitWeekTrend, TodaySummary};
+use crate::domain::points::{AwardKind, PointAward};
 use crate::domain::presets::{HabitPreset, PresetCategory, PresetConfidence};
 use crate::domain::{
     is_currency_code, Entry, EntryId, Habit, HabitId, Profile, Settings, Sex, StartupRoute,
@@ -502,6 +504,87 @@ impl From<ImportSummary> for ImportSummaryDto {
         Self {
             entries_created: s.entries_created,
             row_errors: s.row_errors,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PointAwardDto {
+    pub id: i64,
+    pub kind: &'static str,
+    pub points: i64,
+    pub awarded_for: String,
+    /// Display text, e.g. "Clean day" or "Cigarettes improved".
+    pub label: String,
+}
+
+impl From<PointAward> for PointAwardDto {
+    fn from(a: PointAward) -> Self {
+        Self {
+            id: a.id.unwrap_or_default(),
+            kind: match a.kind {
+                AwardKind::LoggedDay => "logged",
+                AwardKind::CleanDay => "clean",
+                AwardKind::HabitImproved => "habit-improved",
+                AwardKind::StreakBonus => "streak",
+                AwardKind::Milestone => "milestone",
+            },
+            points: a.points,
+            awarded_for: format_date(a.awarded_for),
+            label: a.label(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MilestoneDto {
+    pub key: &'static str,
+    pub title: &'static str,
+    pub description: &'static str,
+    pub points: i64,
+    /// `None` while still locked.
+    pub achieved_on: Option<String>,
+}
+
+impl From<MilestoneStatus> for MilestoneDto {
+    fn from(m: MilestoneStatus) -> Self {
+        Self {
+            key: m.milestone.key,
+            title: m.milestone.title,
+            description: m.milestone.description,
+            points: m.milestone.points,
+            achieved_on: m.achieved_on.map(format_date),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProgressDto {
+    pub total_points: i64,
+    pub level: &'static str,
+    pub level_index: usize,
+    /// `None` at the top level.
+    pub next_level: Option<&'static str>,
+    pub points_to_next: Option<i64>,
+    pub level_progress_fraction: f64,
+    pub recent_awards: Vec<PointAwardDto>,
+    pub milestones: Vec<MilestoneDto>,
+}
+
+impl From<Progress> for ProgressDto {
+    fn from(p: Progress) -> Self {
+        Self {
+            total_points: p.total_points,
+            level: p.level.name,
+            level_index: p.level.index,
+            next_level: p.level.next_name,
+            points_to_next: p.level.points_to_next,
+            level_progress_fraction: p.level.fraction,
+            recent_awards: p.recent_awards.into_iter().map(Into::into).collect(),
+            milestones: p.milestones.into_iter().map(Into::into).collect(),
         }
     }
 }

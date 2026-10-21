@@ -5,8 +5,8 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::application::export_workbook::ExportFormat;
 use crate::application::{
-    compute_series, convert_currency as currency_conversion, export_workbook, import_workbook,
-    today_summary,
+    award_points, compute_series, convert_currency as currency_conversion, export_workbook,
+    import_workbook, today_summary,
 };
 use crate::domain::presets::habit_presets;
 use crate::domain::repository::{
@@ -15,14 +15,15 @@ use crate::domain::repository::{
 use crate::infrastructure::db::codec::{parse_date, parse_datetime};
 use crate::infrastructure::db::{
     SqliteCurrencyConversionRepository, SqliteEntryRepository, SqliteHabitRepository,
-    SqliteMappingRepository, SqliteProfileRepository, SqliteSettingsRepository,
+    SqliteMappingRepository, SqlitePointAwardRepository, SqliteProfileRepository,
+    SqliteSettingsRepository,
 };
 use crate::infrastructure::fx::FrankfurterRateSource;
 use crate::infrastructure::import::mapping::ColumnMapping;
 
 use super::dto::{
     CurrencyConversionDto, EntryDto, HabitDto, HabitPresetDto, ImportPreviewDto, ImportSummaryDto,
-    ProfileDto, SettingsDto, TimelineDto, TodaySummaryDto,
+    ProfileDto, ProgressDto, SettingsDto, TimelineDto, TodaySummaryDto,
 };
 use super::state::AppState;
 
@@ -323,6 +324,30 @@ pub fn compute_today_summary(
     today_summary::compute_today_summary(&habit_repo, &entry_repo, &profile_repo, today)
         .map(Into::into)
         .map_err(|e| e.to_string())
+}
+
+/// Also the points evaluation hook: `today` is the frontend's local date
+/// (Rust has no reliable local clock here), and the progress store calls this
+/// on startup and on every entries/habits/settings change. New awards are
+/// announced with a "points" data-changed event.
+#[tauri::command]
+pub fn get_progress(
+    app: AppHandle,
+    state: State<AppState>,
+    today: String,
+) -> Result<ProgressDto, String> {
+    let habit_repo = SqliteHabitRepository::new(Arc::clone(&state.db));
+    let entry_repo = SqliteEntryRepository::new(Arc::clone(&state.db));
+    let settings_repo = SqliteSettingsRepository::new(Arc::clone(&state.db));
+    let award_repo = SqlitePointAwardRepository::new(Arc::clone(&state.db));
+    let today = parse_date(&today).map_err(|e| e.to_string())?;
+    let progress =
+        award_points::get_progress(&habit_repo, &entry_repo, &settings_repo, &award_repo, today)
+            .map_err(|e| e.to_string())?;
+    if progress.newly_awarded > 0 {
+        notify_changed(&app, "points");
+    }
+    Ok(progress.into())
 }
 
 #[tauri::command]

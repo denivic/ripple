@@ -49,6 +49,7 @@ pub fn run() {
             interface::commands::import_theme,
             interface::commands::compute_timeline,
             interface::commands::compute_today_summary,
+            interface::commands::get_progress,
             interface::commands::get_habit_presets,
             interface::commands::preview_import,
             interface::commands::apply_import,

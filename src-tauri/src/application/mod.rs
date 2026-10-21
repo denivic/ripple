@@ -1,3 +1,4 @@
+pub mod award_points;
 pub mod compute_series;
 pub mod convert_currency;
 pub mod export_workbook;
